@@ -29,6 +29,7 @@ public class Tile : MonoBehaviour
         switch (type)
         {
             case TileType.Wall:
+                gameObject.AddComponent<Wall>(); 
                 renderer.material = ResourceHolder.Instance.wallMaterial;
                 break;
             case TileType.Occupied:

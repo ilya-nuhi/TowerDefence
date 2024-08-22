@@ -51,13 +51,11 @@ public class MapCreator : MonoBehaviour
         {
             for (int x = startX; x < startX + occupiedWidth; x++)
             {
-                tiles[z, x].GetComponent<MeshRenderer>().material = ResourceHolder.Instance.occupiedMaterial;
                 tiles[z, x].SetTileType(TileType.Occupied);
                 // Set walls around the border of the occupied area
                 if (z == startZ || z == startZ + occupiedHeight - 1 || x == startX || x == startX + occupiedWidth - 1)
                 {
                     // Changing current tile to wall
-                    tiles[z, x].AddComponent<Wall>();
                     tiles[z, x].SetTileType(TileType.Wall);
                 }
                 
