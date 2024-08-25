@@ -13,7 +13,7 @@ public class MapCreator : MonoBehaviour
     [SerializeField] int occupiedHeight;
     [SerializeField] GameObject cubePrefab;
 
-    Tile[,] tiles;
+    public Tile[,] tiles;
 
     // Start is called before the first frame update
     void Start()

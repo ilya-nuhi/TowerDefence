@@ -29,7 +29,10 @@ public class Tile : MonoBehaviour
         switch (type)
         {
             case TileType.Wall:
-                gameObject.AddComponent<Wall>(); 
+                if (GetComponent<Wall>() == null)
+                {
+                    gameObject.AddComponent<Wall>();
+                }
                 renderer.material = ResourceHolder.Instance.wallMaterial;
                 break;
             case TileType.Occupied:
@@ -38,4 +41,21 @@ public class Tile : MonoBehaviour
         }
     }
 
+    public IEnumerator LowerTile()
+    {
+        float duration = 1.0f; // 1 second to lower
+        Vector3 startPos = transform.position;
+        Vector3 endPos = new Vector3(startPos.x, 0.0f, startPos.z); // Lower the wall to y = 0.0f
+
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            transform.position = Vector3.Lerp(startPos, endPos, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        transform.position = endPos; // Ensure it ends at the exact final position
+    }
 }

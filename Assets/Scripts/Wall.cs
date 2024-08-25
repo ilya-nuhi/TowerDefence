@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -6,11 +7,10 @@ public class Wall : MonoBehaviour
 {
 
     private void Start() {
-        StartCoroutine(RiseWall());    
+        StartCoroutine(RiseTile());    
     }
 
-    public IEnumerator RiseWall(){
-        GetComponent<MeshRenderer>().material = ResourceHolder.Instance.wallMaterial;
+    public IEnumerator RiseTile(){
 
         float duration = 1.0f; // 1 second to rise
         Vector3 startPos = transform.position;
@@ -27,6 +27,5 @@ public class Wall : MonoBehaviour
 
         transform.position = endPos; // Ensure it ends at the exact final position
     }
-
 
 }
