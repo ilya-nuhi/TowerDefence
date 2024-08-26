@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,12 +8,20 @@ public class TileSelector : MonoBehaviour
 {
     [SerializeField] MapCreator mapCreator;
     [SerializeField] LayerMask tileLayerMask;
-    public GameObject selectionBoxPrefab;
-    private GameObject selectionBox;
-    private Vector3 startPoint;
+    [SerializeField] GameObject selectionBoxPrefab;
+    [SerializeField] GameObject invisBoxPrefab;
+    private GameObject startObj;
     private Vector3 endPoint;
     private Tile[,] tiles;
+    private List<Tile> walls;
+    private List<GameObject> _selectedWalls;
+    private List<Tile> _selectedTiles;
+    private Tile _lastSelectedTile;
+    List<Tile> _newOuterWalls;
     private bool isSelecting = false;
+
+    // Boundaries of smallest rectangle that can cover our walls
+    private int minX, maxX, minZ, maxZ;
 
     private PlayerInputActions inputActions;
 
@@ -26,62 +35,111 @@ public class TileSelector : MonoBehaviour
         inputActions.Enable();
         inputActions.Player.Click.performed += StartSelection;
         inputActions.Player.Click.canceled += EndSelection;
-        inputActions.Player.Select.performed += UpdateSelectionBox; // Update the box during drag
+        inputActions.Player.Select.performed += UpdateSelectedWalls; // Update the box during drag
     }
 
     private void OnDisable()
     {
         inputActions.Player.Click.performed -= StartSelection;
         inputActions.Player.Click.canceled -= EndSelection;
-        inputActions.Player.Select.performed -= UpdateSelectionBox;
+        inputActions.Player.Select.performed -= UpdateSelectedWalls;
         inputActions.Disable();
     }
 
     private void Start() {
         tiles = mapCreator.tiles;
+        walls = mapCreator.walls;
     }
 
     private void StartSelection(InputAction.CallbackContext context)
     {
-        isSelecting = true;
-        startPoint = GetMouseWorldPosition();
-        selectionBox = Instantiate(selectionBoxPrefab, startPoint, Quaternion.identity);
+        startObj = GetMouseHitObject();
+        if(startObj.TryGetComponent<Tile>(out Tile selectedTile) && selectedTile.Type == TileType.Wall){
+            _selectedWalls = new List<GameObject>();
+            _selectedTiles = new List<Tile>();
+            GameObject selectionWall = Instantiate(selectionBoxPrefab, new Vector3(startObj.transform.position.x, 1, startObj.transform.position.z), Quaternion.identity);
+            _selectedWalls.Add(selectionWall);
+            _lastSelectedTile = selectedTile;
+            isSelecting = true;
+        }
     }
 
     private void EndSelection(InputAction.CallbackContext context)
     {
         if (!isSelecting) return;
-
         isSelecting = false;
+        GameObject nextTile = GetMouseHitObject();
+        // If the wall selection is valid expand.
+        if(nextTile.TryGetComponent<Tile>(out Tile selectedTile) && selectedTile.Type == TileType.Wall && CheckAdjacencyOfTiles(_lastSelectedTile, selectedTile)){
+            foreach(Tile tile in _selectedTiles){
+                if(tile.Type == TileType.Empty){
+                    tile.SetTileType(TileType.Wall);
+                    walls.Add(tile);
+                }
+            }
+            FindNewOuterWalls();
+            BreakInnerWalls();
+        }
 
-        StartCoroutine(SelectTilesInBox());
-        Destroy(selectionBox);
+        // Destroy all GameObjects in _selectedWalls
+        foreach (GameObject wall in _selectedWalls)
+        {
+            Destroy(wall);
+        }
+        // Clear the references for selected walls
+        _selectedWalls.Clear();
+        // Clear the references for selected tiles
+        _selectedTiles.Clear();
+        
     }
 
-    private void UpdateSelectionBox(InputAction.CallbackContext context)
-    {
+    private void UpdateSelectedWalls(InputAction.CallbackContext context){
         if (!isSelecting) return;
+            GameObject nextTile = GetMouseHitObject();
+            if(nextTile.TryGetComponent<Tile>(out Tile selectedTile) && selectedTile.Type == TileType.Empty && CheckAdjacencyOfTiles(_lastSelectedTile, selectedTile)){
+                GameObject selectionWall = Instantiate(selectionBoxPrefab, new Vector3(nextTile.transform.position.x, 1, nextTile.transform.position.z), Quaternion.identity);
+    
+                // Calculate the direction from the last selected tile to the new tile
+                Vector3 direction = new Vector3(_lastSelectedTile.X - selectedTile.X , 0, _lastSelectedTile.Z - selectedTile.Z);
+                // Calculate the left and right directions (perpendicular to the direction)
+                Vector3 leftDirection = new Vector3(-direction.z, 0, direction.x);
+                Vector3 rightDirection = new Vector3(direction.z, 0, -direction.x);
+                // Invisible walls are to prevent building walls next to each other
+                GameObject invisWallLeft = Instantiate(invisBoxPrefab, new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) + leftDirection, Quaternion.identity);
+                GameObject invisWallRight = Instantiate(invisBoxPrefab, new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) + rightDirection, Quaternion.identity);
+                GameObject invisWallBack = Instantiate(invisBoxPrefab, new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) + direction, Quaternion.identity);
+                GameObject invisWallBackRight = Instantiate(invisBoxPrefab, new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) + direction + rightDirection, Quaternion.identity);
+                GameObject invisWallBackLeft = Instantiate(invisBoxPrefab, new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) + direction + leftDirection, Quaternion.identity);
+                
+                _selectedWalls.Add(selectionWall);
+                _selectedWalls.Add(invisWallLeft);
+                _selectedWalls.Add(invisWallRight);
+                _selectedWalls.Add(invisWallBack);
+                _selectedWalls.Add(invisWallBackRight);
+                _selectedWalls.Add(invisWallBackLeft);
 
-        endPoint = GetMouseWorldPosition();
+                _selectedTiles.Add(selectedTile);
+                _lastSelectedTile = selectedTile;
+            }
 
-        // Calculate the minimum and maximum points to ensure proper sizing
-        Vector3 min = Vector3.Min(startPoint, endPoint);
-        Vector3 max = Vector3.Max(startPoint, endPoint);
+        return;
+    }
 
-        // Calculate the center and size of the selection box
-        Vector3 center = (min + max) / 2;
-        Vector3 size = max - min;
+    private bool CheckAdjacencyOfTiles(Tile tile1, Tile tile2)
+    {
+        // Check if both tiles are not null
+        if (tile1 == null || tile2 == null){return false;}
 
-        // Fix y position and scale
-        center.y = 0.7f; // Ensure y position is fixed
-        size.y = 1; // Ensure y scale is fixed
+        // Check if the tiles are directly next to each other
+        int dx = Mathf.Abs(tile1.X - tile2.X);
+        int dz = Mathf.Abs(tile1.Z - tile2.Z);
 
-        selectionBox.transform.position = center;
-        selectionBox.transform.localScale = size;
+        // Tiles are adjacent if they differ by 1 in either axis and are the same in the other axis
+        return (dx == 1 && dz == 0) || (dx == 0 && dz == 1);
     }
 
 
-    private Vector3 GetMouseWorldPosition()
+    private GameObject GetMouseHitObject()
     {
         Vector2 mousePosition = inputActions.Player.Select.ReadValue<Vector2>();
         Ray ray = Camera.main.ScreenPointToRay(mousePosition);
@@ -89,127 +147,150 @@ public class TileSelector : MonoBehaviour
 
         if (Physics.Raycast(ray, out hit))
         {
-            return hit.point;
+            return hit.collider.gameObject;
         }
 
-        return new Vector3(-1, -1, -1);
+        return null;
     }
 
-    private IEnumerator SelectTilesInBox()
+    private void FindMinMaxPoints()
     {
-        List<Tile> selectedWalls = new List<Tile>();
-        List<Tile> selectedTiles = new List<Tile>();
-        // Using the layer mask to filter out non-tile objects
-        Collider[] colliders = Physics.OverlapBox(selectionBox.transform.position, selectionBox.transform.localScale / 2,
-                                                     Quaternion.identity, tileLayerMask);
+        // Initialize min and max values
+        minX = int.MaxValue;
+        maxX = int.MinValue;
+        minZ = int.MaxValue;
+        maxZ = int.MinValue;
 
-        foreach (var collider in colliders)
+        // Iterate over the walls list
+        foreach (Tile wall in walls)
         {
-            if (collider.TryGetComponent<Tile>(out Tile tile))
+            // Compare and update minX and maxX
+            if (wall.X < minX) minX = wall.X;
+            if (wall.X > maxX) maxX = wall.X;
+
+            // Compare and update minZ and maxZ
+            if (wall.Z < minZ) minZ = wall.Z;
+            if (wall.Z > maxZ) maxZ = wall.Z;
+        }
+    }
+
+    private void FindNewOuterWalls()
+    {
+        // Find the min/max points
+        FindMinMaxPoints();
+
+        // Expand the rectangle by one tile in each direction
+        minX -= 1;
+        maxX += 1;
+        minZ -= 1;
+        maxZ += 1;
+
+        // Initialize the list for flood-filled walls
+        _newOuterWalls = new List<Tile>();
+
+        // Start the flood fill from the bottom-left corner
+        FloodFill(tiles[minZ, minX]);
+    }
+
+    private void FloodFill(Tile startTile)
+    {
+        // Create a stack for flood fill (or a queue if you prefer BFS)
+        Queue<Tile> queue = new Queue<Tile>();
+        queue.Enqueue(startTile);
+
+        // Track visited tiles
+        HashSet<Tile> visited = new HashSet<Tile>();
+
+        while (queue.Count > 0)
+        {
+            Tile current = queue.Dequeue();
+
+            // Skip if this tile is outside the expanded rectangle bounds
+            if (current.X < minX || current.X > maxX || current.Z < minZ || current.Z > maxZ)
+                continue;
+
+            // Skip if already visited
+            if (visited.Contains(current))
+                continue;
+
+            visited.Add(current);
+
+            if (current.Type == TileType.Empty)
             {
-                selectedTiles.Add(tile);
-
-                if (tile.Type == TileType.Wall)
-                {
-                    selectedWalls.Add(tile);
-                }
+                // Add adjacent tiles to the stack for further exploration
+                queue.Enqueue(tiles[current.Z + 1, current.X]);
+                queue.Enqueue(tiles[current.Z - 1, current.X]);
+                queue.Enqueue(tiles[current.Z, current.X + 1]);
+                queue.Enqueue(tiles[current.Z, current.X - 1]);
+                queue.Enqueue(tiles[current.Z + 1, current.X + 1]);
+                queue.Enqueue(tiles[current.Z - 1, current.X - 1]);
+                queue.Enqueue(tiles[current.Z - 1, current.X + 1]);
+                queue.Enqueue(tiles[current.Z + 1, current.X - 1]);
             }
-        }
-
-        // Check for 3 or more successive wall tiles
-        if (selectedWalls.Count >= 3)
-        {
-            yield return ConvertWallsToOccupied(selectedWalls);
-            ExpandOccupiedArea(selectedTiles);
-        }
-    }
-
-    private IEnumerator ConvertWallsToOccupied(List<Tile> walls)
-    {
-        foreach (Tile tile in walls)
-        {
-            if(tile.Type==TileType.Wall && tile.TryGetComponent<Wall>(out Wall currentWall)){
-                // destroying wall component from the tile
-                Destroy(currentWall);
-                StartCoroutine(tile.LowerTile());
-                tile.SetTileType(TileType.Occupied);
-            }
-        }
-        yield return null;
-    }
-
-    private void ExpandOccupiedArea(List<Tile> selectedTiles)
-    {
-        // Find the boundaries of the selected area
-        int minX = int.MaxValue, maxX = int.MinValue;
-        int minZ = int.MaxValue, maxZ = int.MinValue;
-
-        foreach (var tile in selectedTiles)
-        {
-            if (tile.X < minX) minX = tile.X;
-            if (tile.X > maxX) maxX = tile.X;
-            if (tile.Z < minZ) minZ = tile.Z;
-            if (tile.Z > maxZ) maxZ = tile.Z;
-        }
-        
-        
-        // Expand the occupied area to include all selected tiles
-        for (int x = minX; x <= maxX; x++)
-        {
-            for (int z = minZ; z <= maxZ; z++)
+            else if (current.Type == TileType.Wall)
             {
-                if (tiles[z, x] != null && tiles[z, x].Type == TileType.Empty)
-                {
-                    tiles[z, x].SetTileType(TileType.Occupied);
-                }
+                // If it's a wall, add it to the flood-filled walls list
+                _newOuterWalls.Add(current);
             }
         }
-
-        // Add walls around the expanded occupied area
-        AddWallsAroundArea(minX, maxX, minZ, maxZ);
     }
 
-    private void AddWallsAroundArea(int minX, int maxX, int minZ, int maxZ)
+    private void BreakInnerWalls()
     {
-        // Add walls along the minimum and maximum x-axis
-        for (int x = minX; x <= maxX; x++)
+        List<Tile> innerWalls = new List<Tile>();
+
+        // Loop through the existing walls list
+        foreach (Tile wall in walls)
         {
-            HandleBordering(minZ, x, minZ-1, x);
-            HandleBordering(maxZ, x, maxZ+1, x);
+            // Check if the wall is not in the newOuterWalls list
+            if (!_newOuterWalls.Contains(wall))
+            {
+                // This wall is an inner wall
+                innerWalls.Add(wall);
+            }
         }
 
-        // Add walls along the minimum and maximum z-axis
-        for (int z = minZ; z <= maxZ; z++)
+        // Breaking inner walls
+        foreach (Tile innerWall in innerWalls)
         {
-            HandleBordering(z, minX, z, minX-1);
-            HandleBordering(z, maxX, z, maxX+1);
+            StartCoroutine(innerWall.LowerTile());
+            Destroy(innerWall.GetComponent<Wall>());
+            innerWall.SetTileType(TileType.Empty);
+        }
+        walls = new List<Tile>(_newOuterWalls);
+        if(innerWalls.Count>0){
+            FloodFillNewOccupied(innerWalls[0]);
         }
     }
 
-    // looking other side of the border to decide what should the tile be
-    private void HandleBordering(int originZ, int originX, int lookedZ, int lookedX)
+    private void FloodFillNewOccupied(Tile tile)
     {
-        Tile currentTile = tiles[originZ, originX];
-        Tile lookedTile = tiles[lookedZ, lookedX];
+        // Create a stack for flood fill (or a queue if you prefer BFS)
+        Queue<Tile> queue = new Queue<Tile>();
+        queue.Enqueue(tile);
 
-        if (currentTile != null && lookedTile != null)
+        // Track visited tiles
+        HashSet<Tile> visited = new HashSet<Tile>();
+
+        while (queue.Count > 0)
         {
-            if (lookedTile.Type == TileType.Empty)
+            Tile current = queue.Dequeue();
+
+            // Skip if already visited
+            if (visited.Contains(current))
+                continue;
+
+            visited.Add(current);
+
+            if (current.Type == TileType.Empty)
             {
-                currentTile.SetTileType(TileType.Wall);
-            }
-            else if (lookedTile.Type == TileType.Wall)
-            {
-                // if (currentTile.Type != TileType.Wall && lookedTile.TryGetComponent<Wall>(out Wall currentWall))
-                // {
-                //     Destroy(currentWall);
-                //     StartCoroutine(lookedTile.LowerTile());
-                //     lookedTile.SetTileType(TileType.Occupied);
-                // }
-                //currentTile.SetTileType(TileType.Occupied);
+                current.SetTileType(TileType.Occupied);
+                // Add adjacent tiles to the stack for further exploration
+                queue.Enqueue(tiles[current.Z + 1, current.X]);
+                queue.Enqueue(tiles[current.Z - 1, current.X]);
+                queue.Enqueue(tiles[current.Z, current.X + 1]);
+                queue.Enqueue(tiles[current.Z, current.X - 1]);
             }
         }
     }
-
-
 }

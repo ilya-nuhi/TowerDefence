@@ -14,6 +14,7 @@ public class MapCreator : MonoBehaviour
     [SerializeField] GameObject cubePrefab;
 
     public Tile[,] tiles;
+    public List<Tile> walls;
 
     // Start is called before the first frame update
     void Start()
@@ -57,6 +58,7 @@ public class MapCreator : MonoBehaviour
                 {
                     // Changing current tile to wall
                     tiles[z, x].SetTileType(TileType.Wall);
+                    walls.Add(tiles[z,x]);
                 }
                 
             }

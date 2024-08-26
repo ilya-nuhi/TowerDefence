@@ -203,6 +203,7 @@ MonoBehaviour:
   occupiedWidth: 15
   occupiedHeight: 15
   cubePrefab: {fileID: 1663942890945622154, guid: ed11f3d02034d2b46abf228b7212145f, type: 3}
+  walls: []
 --- !u!4 &557081727
 Transform:
   m_ObjectHideFlags: 0
@@ -453,6 +454,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   selectionBoxPrefab: {fileID: 1663942890945622154, guid: 909a8eaed260191499bc6bf2ac58eac6, type: 3}
+  invisBoxPrefab: {fileID: 1663942890945622154, guid: a771efa7a6d177645960ff98e63455fd, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
