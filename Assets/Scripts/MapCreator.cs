@@ -53,14 +53,43 @@ public class MapCreator : MonoBehaviour
             for (int x = startX; x < startX + occupiedWidth; x++)
             {
                 tiles[z, x].SetTileType(TileType.Occupied);
-                // Set walls around the border of the occupied area
-                if (z == startZ || z == startZ + occupiedHeight - 1 || x == startX || x == startX + occupiedWidth - 1)
-                {
-                    // Changing current tile to wall
-                    tiles[z, x].SetTileType(TileType.Wall);
-                    walls.Add(tiles[z,x]);
-                }
-                
+            }
+        }
+
+        int counter = 0;
+        // Build horizontal walls (bottom and top)
+        for (int x = startX; x < startX + occupiedWidth; x++)
+        {
+            counter++;
+            // Bottom wall
+            tiles[startZ, x].SetTileType(TileType.Wall);
+            walls.Add(tiles[startZ, x]);
+
+            // Top wall
+            tiles[startZ + occupiedHeight - 1, x].SetTileType(TileType.Wall);
+            walls.Add(tiles[startZ + occupiedHeight - 1, x]);
+            // Building archer towers on the middle wall if there are 3 consecutive walls
+            if(counter%3 == 0 && x != startX + occupiedWidth -1){
+                tiles[startZ, x].GetComponent<Wall>().BuildArcherTower();
+                tiles[startZ + occupiedHeight - 1, x].GetComponent<Wall>().BuildArcherTower();
+            }
+        }
+        counter=0;
+        // Build vertical walls (left and right)
+        for (int z = startZ; z < startZ + occupiedHeight; z++)
+        {
+            counter++;
+            // Left wall
+            tiles[z, startX].SetTileType(TileType.Wall);
+            walls.Add(tiles[z, startX]);
+
+            // Right wall
+            tiles[z, startX + occupiedWidth - 1].SetTileType(TileType.Wall);
+            walls.Add(tiles[z, startX + occupiedWidth - 1]);
+            // Building archer towers on the middle wall if there are 3 consecutive walls
+            if(counter%3 == 0 && z != startZ + occupiedHeight -1){
+                tiles[z, startX].GetComponent<Wall>().BuildArcherTower();
+                tiles[z, startX + occupiedWidth - 1].GetComponent<Wall>().BuildArcherTower();
             }
         }
         

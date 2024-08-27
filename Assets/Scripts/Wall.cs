@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class Wall : MonoBehaviour
 {
+    public GameObject archerTower;
 
     private void Start() {
         StartCoroutine(RiseTile());    
@@ -26,6 +27,12 @@ public class Wall : MonoBehaviour
         }
 
         transform.position = endPos; // Ensure it ends at the exact final position
+    }
+
+    public void BuildArcherTower(){
+        // wait 1 second to wall to build
+        archerTower = Instantiate(ResourceHolder.Instance.archerTowerPrefap, new Vector3(transform.position.x, transform.position.y + 0.5f, transform.position.z), Quaternion.identity); 
+        archerTower.transform.parent = transform;
     }
 
 }

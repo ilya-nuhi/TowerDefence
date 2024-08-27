@@ -79,12 +79,14 @@ public class TileSelector : MonoBehaviour
             }
             FindNewOuterWalls();
             BreakInnerWalls();
+            BuildNewArcherTowers();
+            walls = new List<Tile>(_newOuterWalls);
         }
 
         // Destroy all GameObjects in _selectedWalls
-        foreach (GameObject wall in _selectedWalls)
+        foreach (GameObject selectionWall in _selectedWalls)
         {
-            Destroy(wall);
+            Destroy(selectionWall);
         }
         // Clear the references for selected walls
         _selectedWalls.Clear();
@@ -191,10 +193,9 @@ public class TileSelector : MonoBehaviour
         // Start the flood fill from the bottom-left corner
         FloodFill(tiles[minZ, minX]);
     }
-
+    // Using floodfill algorithm to search inside the rectnagle untill finding all the outer walls like covering with a rubber band
     private void FloodFill(Tile startTile)
     {
-        // Create a stack for flood fill (or a queue if you prefer BFS)
         Queue<Tile> queue = new Queue<Tile>();
         queue.Enqueue(startTile);
 
@@ -253,14 +254,23 @@ public class TileSelector : MonoBehaviour
         // Breaking inner walls
         foreach (Tile innerWall in innerWalls)
         {
-            StartCoroutine(innerWall.LowerTile());
-            Destroy(innerWall.GetComponent<Wall>());
-            innerWall.SetTileType(TileType.Empty);
+            BreakWallFromTile(innerWall);
         }
-        walls = new List<Tile>(_newOuterWalls);
         if(innerWalls.Count>0){
             FloodFillNewOccupied(innerWalls[0]);
         }
+    }
+
+    private void BreakWallFromTile(Tile tile)
+    {
+        Wall wall = tile.GetComponent<Wall>();
+        if (wall.archerTower != null)
+        {
+            Destroy(wall.archerTower);
+        }
+        StartCoroutine(tile.LowerTile());
+        Destroy(wall);
+        tile.SetTileType(TileType.Empty);
     }
 
     private void FloodFillNewOccupied(Tile tile)
@@ -293,4 +303,58 @@ public class TileSelector : MonoBehaviour
             }
         }
     }
+
+    private void BuildNewArcherTowers()
+    {   
+        
+        if(_selectedTiles.Count > 0)
+        {
+            for (int i = 0; i < _selectedTiles.Count; i++)
+            {
+                Tile currentTile = _selectedTiles[i];
+                List<Tile> adjacentWalls = new List<Tile>();
+
+                // Check adjacent tiles (left, right, up, down) using TryGetComponent and archerTower check
+                if (tiles[currentTile.Z, currentTile.X - 1].TryGetComponent(out Wall leftWall) && leftWall.archerTower == null)
+                    adjacentWalls.Add(tiles[currentTile.Z, currentTile.X - 1]);
+
+                if (tiles[currentTile.Z, currentTile.X + 1].TryGetComponent(out Wall rightWall) && rightWall.archerTower == null)
+                    adjacentWalls.Add(tiles[currentTile.Z, currentTile.X + 1]);
+                    
+                if (tiles[currentTile.Z - 1, currentTile.X].TryGetComponent(out Wall downWall) && downWall.archerTower == null)
+                    adjacentWalls.Add(tiles[currentTile.Z - 1, currentTile.X]);
+            
+                if (tiles[currentTile.Z + 1, currentTile.X].TryGetComponent(out Wall upWall) && upWall.archerTower == null)
+                    adjacentWalls.Add(tiles[currentTile.Z + 1, currentTile.X]);
+                
+
+                // Check if exactly 2 adjacent walls are found
+                if (adjacentWalls.Count == 2)
+                {
+                    Vector3 direction1 = new Vector3(currentTile.transform.position.x - adjacentWalls[0].transform.position.x, 0, currentTile.transform.position.z - adjacentWalls[0].transform.position.z);
+                    Vector3 direction2 = new Vector3(adjacentWalls[1].transform.position.x - currentTile.transform.position.x, 0, adjacentWalls[1].transform.position.z - currentTile.transform.position.z);
+
+                    
+                    // checks if the side walls have archer tower or not if at least one of them do go to next tile.
+                    if(tiles[adjacentWalls[0].Z - Mathf.RoundToInt(direction1.z), adjacentWalls[0].X - Mathf.RoundToInt(direction1.x)].TryGetComponent<Wall>(out Wall otherWall)){
+                        if(otherWall.archerTower!=null) continue;
+                    }
+                    if(tiles[adjacentWalls[1].Z + Mathf.RoundToInt(direction1.z), adjacentWalls[1].X + Mathf.RoundToInt(direction1.x)].TryGetComponent<Wall>(out Wall otherWall2)){
+                        if(otherWall2.archerTower!=null) continue;
+                    }
+
+                    // Check if the directions are aligned in one line
+                    if (Vector3.Dot(direction1.normalized, direction2.normalized) > 0.99f)
+                    {
+                        currentTile.GetComponent<Wall>().BuildArcherTower();
+                    }
+    
+                }
+        
+            }
+        }
+        
+
+    }
+
 }
