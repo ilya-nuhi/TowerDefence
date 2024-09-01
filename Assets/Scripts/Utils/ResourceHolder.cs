@@ -6,5 +6,7 @@ public class ResourceHolder : Singleton<ResourceHolder>
 {
     public Material occupiedMaterial;
     public Material wallMaterial;
+    public Material constructMaterial;
     public GameObject archerTowerPrefap;
+
 }

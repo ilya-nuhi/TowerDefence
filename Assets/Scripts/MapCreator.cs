@@ -63,10 +63,12 @@ public class MapCreator : MonoBehaviour
             counter++;
             // Bottom wall
             tiles[startZ, x].SetTileType(TileType.Wall);
+            tiles[startZ, x].RiseTile();
             walls.Add(tiles[startZ, x]);
 
             // Top wall
             tiles[startZ + occupiedHeight - 1, x].SetTileType(TileType.Wall);
+            tiles[startZ + occupiedHeight - 1, x].RiseTile();
             walls.Add(tiles[startZ + occupiedHeight - 1, x]);
             // Building archer towers on the middle wall if there are 3 consecutive walls
             if(counter%3 == 0 && x != startX + occupiedWidth -1){
@@ -81,10 +83,12 @@ public class MapCreator : MonoBehaviour
             counter++;
             // Left wall
             tiles[z, startX].SetTileType(TileType.Wall);
+            tiles[z, startX].RiseTile();
             walls.Add(tiles[z, startX]);
 
             // Right wall
             tiles[z, startX + occupiedWidth - 1].SetTileType(TileType.Wall);
+            tiles[z, startX + occupiedWidth - 1].RiseTile();
             walls.Add(tiles[z, startX + occupiedWidth - 1]);
             // Building archer towers on the middle wall if there are 3 consecutive walls
             if(counter%3 == 0 && z != startZ + occupiedHeight -1){

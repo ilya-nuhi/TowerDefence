@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 4979425196321555066}
   - component: {fileID: 5019507611811801779}
   - component: {fileID: 9195592764915223638}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: InvisBox
   m_TagString: Untagged
   m_Icon: {fileID: 0}
