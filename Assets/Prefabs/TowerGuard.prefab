@@ -14,7 +14,6 @@ GameObject:
   - component: {fileID: 8427847668589729958}
   - component: {fileID: 3760037499033698200}
   - component: {fileID: 2773943803917396291}
-  - component: {fileID: 4981625799345261578}
   m_Layer: 0
   m_Name: TowerGuard
   m_TagString: Untagged
@@ -122,7 +121,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e78ce7a63a09d5468b792077d933a95, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  navigation: {fileID: 4981625799345261578}
+  agent: {fileID: 2773943803917396291}
 --- !u!195 &2773943803917396291
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -145,17 +144,3 @@ NavMeshAgent:
   m_BaseOffset: 1
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
---- !u!114 &4981625799345261578
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4213077079750969287}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d3f9a55840cb2e14abbb3a87a0667b69, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  target: {fileID: 0}
-  navMeshAgent: {fileID: 2773943803917396291}

@@ -9,8 +9,7 @@ public class GuardSpawner : MonoBehaviour
     [SerializeField] private TowerGuard guardPrefab;
     private Tile _startTile;
     private List<TowerGuard> _towerGuards;
-    private bool _isBuilding = false;
-    private bool _buildOrder = false;
+    private int _guardsAtDestination = 0;
 
     private void OnEnable()
     {
@@ -30,47 +29,6 @@ public class GuardSpawner : MonoBehaviour
         StartCoroutine(DetectTileAfterFrame());
         _towerGuards = new List<TowerGuard>();
     }
-
-    private void Update() {
-        if(_towerGuards.Count>0){
-            // if all tower guards are reached to destination position, then building of wall should start
-            if(!_isBuilding){
-                bool allReached = true;
-                foreach (var towerGuard in _towerGuards.Where(towerGuard => !towerGuard.navigation.isReachedDestination))
-                {
-                    allReached = false;
-                }
-
-                if(allReached){
-                    _isBuilding = true;
-                    // setting build order to false in order to prevent it calling coroutine again after it executed
-                    _buildOrder = false;
-                    StartCoroutine(FinishBuildingCoroutine());
-                }
-            }
-            // if the towerguards returned to spawner they should be destroyed and removed from the guards list.
-            if(_towerGuards[0].navigation.destination == _startTile.transform){
-                for (int i = _towerGuards.Count - 1; i >= 0; i--)
-                {
-                    TowerGuard towerGuard = _towerGuards[i];
-                    if (towerGuard.navigation.isReachedDestination)
-                    {
-                        _towerGuards.RemoveAt(i);
-                        Destroy(towerGuard.gameObject);
-                    }
-                }
-            }
-        }
-        else{
-            if(_buildOrder){
-                _buildOrder = false;
-                _isBuilding = true;
-                StartCoroutine(FinishBuildingCoroutine());
-        
-            }
-        }
-    }
-
 
     private IEnumerator DetectTileAfterFrame()
     {
@@ -98,19 +56,44 @@ public class GuardSpawner : MonoBehaviour
 
     private void SpawnTowerGuards(List<Tile> destTiles)
     {   
-        _buildOrder = true;
-        _isBuilding = false;
+        _guardsAtDestination = 0;
+        
         foreach(Tile destTile in destTiles){
             TowerGuard guard = Instantiate(guardPrefab, new Vector3(transform.position.x, 1, transform.position.z), Quaternion.identity);
-            guard.MovePosition(destTile.transform);
+            guard.OnReachedDestination += OnGuardReachedDestination;
+            guard.SetDestination(destTile.transform);
             _towerGuards.Add(guard);
+        }
+
+        if (destTiles.Count==0)
+        {
+            StartCoroutine(FinishBuildingCoroutine());
+        }
+    }
+    
+    private void OnGuardReachedDestination(TowerGuard guard)
+    {
+        _guardsAtDestination++;
+        guard.OnReachedDestination -= OnGuardReachedDestination;
+
+        if (_guardsAtDestination == _towerGuards.Count)
+        {
+            StartCoroutine(FinishBuildingCoroutine());
         }
     }
 
     private void RetreatGuardsToBase(){
-        foreach(TowerGuard towerGuard in _towerGuards){
-            towerGuard.MovePosition(_startTile.transform);
+        for (int i = _towerGuards.Count-1; i >= 0; i--)
+        {
+            _towerGuards[i].OnReachedDestination += OnGuardReturnedToBase;
+            _towerGuards[i].SetDestination(_startTile.transform);
+            _towerGuards.Remove(_towerGuards[i]);
         }
+    }
+    private void OnGuardReturnedToBase(TowerGuard guard)
+    {
+        guard.OnReachedDestination -= OnGuardReturnedToBase;
+        Destroy(guard.gameObject);
     }
 
     private IEnumerator FinishBuildingCoroutine(){

@@ -7,8 +7,7 @@ public class EventManager : Singleton<EventManager>
     public event Action<List<Tile>> OnSpawnTowerGuards;
     public event Action OnFinishBuildingWalls;
     public event Action OnUpdateNavMesh;
-   
-   
+    
     public void SpawnTowerGuards(List<Tile> destinationTiles)
     {
         OnSpawnTowerGuards?.Invoke(destinationTiles);
@@ -21,5 +20,5 @@ public class EventManager : Singleton<EventManager>
     {
         OnUpdateNavMesh?.Invoke();
     }
-
+    
 }
