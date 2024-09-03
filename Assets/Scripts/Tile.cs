@@ -24,65 +24,17 @@ public class Tile : MonoBehaviour
     public void SetTileType(TileType type)
     {
         Type = type;
-        // Update material or other properties based on type
-        var renderer = GetComponent<MeshRenderer>();
+        
         switch (type)
         {
-            case TileType.Wall:
-                if (GetComponent<Wall>() == null)
-                {
-                    gameObject.AddComponent<Wall>();
-                }
-                renderer.material = ResourceHolder.Instance.wallMaterial;
-                break;
             case TileType.Occupied:
-                renderer.material = ResourceHolder.Instance.occupiedMaterial;
+                GetComponent<MeshRenderer>().material = ResourceHolder.Instance.occupiedMaterial;
+                break;
+            case TileType.Wall:
+                GameObject wall = Instantiate(ResourceHolder.Instance.wallPrefab, transform.position, Quaternion.identity);
+                wall.transform.parent = transform;
                 break;
         }
     }
     
-    public void RiseTile(){
-        StartCoroutine(RiseTileCoroutine());
-    }
-
-    public void LowerTile(){
-        StartCoroutine(LowerTileCoroutine());
-    }
-    
-
-    private IEnumerator RiseTileCoroutine(){
-
-        float duration = 1.0f; // 1 second to rise
-        Vector3 startPos = transform.position;
-        Vector3 endPos = new Vector3(startPos.x, 1, startPos.z); // Raise the wall to y = 1.0f
-
-        float elapsed = 0f;
-
-        while (elapsed < duration)
-        {
-            transform.position = Vector3.Lerp(startPos, endPos, elapsed / duration);
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        transform.position = endPos; // Ensure it ends at the exact final position
-    }
-
-    private IEnumerator LowerTileCoroutine()
-    {
-        float duration = 1.0f; // 1 second to lower
-        Vector3 startPos = transform.position;
-        Vector3 endPos = new Vector3(startPos.x, 0.0f, startPos.z); // Lower the wall to y = 0.0f
-
-        float elapsed = 0f;
-
-        while (elapsed < duration)
-        {
-            transform.position = Vector3.Lerp(startPos, endPos, elapsed / duration);
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        transform.position = endPos; // Ensure it ends at the exact final position
-    }
 }

@@ -6,18 +6,16 @@ using UnityEngine.InputSystem;
 
 public class TileSelector : MonoBehaviour
 {
-    [SerializeField] private MapCreator mapCreator;
-    [SerializeField] private LayerMask tileLayerMask;
     [SerializeField] private GameObject selectionBoxPrefab;
     [SerializeField] private GameObject invisBoxPrefab;
     private GameObject _startObj;
     private Tile[,] _tiles;
-    private List<Tile> _walls;
+    private List<Tile> _wallTiles;
     private List<GameObject> _selectedWalls;
     private List<Tile> _selectedTiles;
     private Tile _lastSelectedTile;
     private List<Tile> _newOuterWalls;
-    private bool _isSelecting = false;
+    private bool _isSelecting;
     private bool _canExpand = true;
 
     // Boundaries of smallest rectangle that can cover our walls
@@ -51,8 +49,8 @@ public class TileSelector : MonoBehaviour
     }
 
     private void Start() {
-        _tiles = mapCreator.tiles;
-        _walls = mapCreator.walls;
+        _tiles = ResourceHolder.Instance.tiles;
+        _wallTiles = ResourceHolder.Instance.walls;
     }
 
     private void StartSelection(InputAction.CallbackContext context)
@@ -82,14 +80,15 @@ public class TileSelector : MonoBehaviour
             foreach(Tile tile in _selectedTiles){
                 if(tile.Type == TileType.Empty){
                     tile.SetTileType(TileType.Wall);
+                    tile.GetComponentInChildren<Wall>().gameObject.SetActive(false);
                     tile.GetComponent<MeshRenderer>().material = ResourceHolder.Instance.constructMaterial;
-                    _walls.Add(tile);
+                    _wallTiles.Add(tile);
                 }
             }
             FindNewOuterWalls();
             BreakInnerWalls();
             BuildNewArcherTowers();
-            _walls = new List<Tile>(_newOuterWalls);
+            _wallTiles = new List<Tile>(_newOuterWalls);
             EventManager.Instance.UpdateNavMesh();
         }
         else{
@@ -108,34 +107,32 @@ public class TileSelector : MonoBehaviour
 
     private void UpdateSelectedWalls(InputAction.CallbackContext context){
         if (!_isSelecting) return;
-            GameObject nextTile = GetMouseHitObject();
-            if(nextTile.TryGetComponent<Tile>(out Tile selectedTile) && selectedTile.Type == TileType.Empty && CheckAdjacencyOfTiles(_lastSelectedTile, selectedTile)){
-                GameObject selectionWall = Instantiate(selectionBoxPrefab, new Vector3(nextTile.transform.position.x, 1, nextTile.transform.position.z), Quaternion.identity);
-    
-                // Calculate the direction from the last selected tile to the new tile
-                Vector3 direction = new Vector3(_lastSelectedTile.X - selectedTile.X , 0, _lastSelectedTile.Z - selectedTile.Z);
-                // Calculate the left and right directions (perpendicular to the direction)
-                Vector3 leftDirection = new Vector3(-direction.z, 0, direction.x);
-                Vector3 rightDirection = new Vector3(direction.z, 0, -direction.x);
-                // Invisible walls are to prevent building walls next to each other
-                GameObject invisWallLeft = Instantiate(invisBoxPrefab, new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) + leftDirection, Quaternion.identity);
-                GameObject invisWallRight = Instantiate(invisBoxPrefab, new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) + rightDirection, Quaternion.identity);
-                GameObject invisWallBack = Instantiate(invisBoxPrefab, new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) + direction, Quaternion.identity);
-                GameObject invisWallBackRight = Instantiate(invisBoxPrefab, new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) + direction + rightDirection, Quaternion.identity);
-                GameObject invisWallBackLeft = Instantiate(invisBoxPrefab, new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) + direction + leftDirection, Quaternion.identity);
-                
-                _selectedWalls.Add(selectionWall);
-                _selectedWalls.Add(invisWallLeft);
-                _selectedWalls.Add(invisWallRight);
-                _selectedWalls.Add(invisWallBack);
-                _selectedWalls.Add(invisWallBackRight);
-                _selectedWalls.Add(invisWallBackLeft);
+        GameObject nextTile = GetMouseHitObject();
+        if(nextTile.TryGetComponent(out Tile selectedTile) && selectedTile.Type == TileType.Empty && CheckAdjacencyOfTiles(_lastSelectedTile, selectedTile)){
+            GameObject selectionWall = Instantiate(selectionBoxPrefab, new Vector3(nextTile.transform.position.x, 1, nextTile.transform.position.z), Quaternion.identity);
 
-                _selectedTiles.Add(selectedTile);
-                _lastSelectedTile = selectedTile;
-            }
+            // Calculate the direction from the last selected tile to the new tile
+            Vector3 direction = new Vector3(_lastSelectedTile.X - selectedTile.X , 0, _lastSelectedTile.Z - selectedTile.Z);
+            // Calculate the left and right directions (perpendicular to the direction)
+            Vector3 leftDirection = new Vector3(-direction.z, 0, direction.x);
+            Vector3 rightDirection = new Vector3(direction.z, 0, -direction.x);
+            // Invisible walls are to prevent building walls next to each other
+            GameObject invisWallLeft = Instantiate(invisBoxPrefab, new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) + leftDirection, Quaternion.identity);
+            GameObject invisWallRight = Instantiate(invisBoxPrefab, new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) + rightDirection, Quaternion.identity);
+            GameObject invisWallBack = Instantiate(invisBoxPrefab, new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) + direction, Quaternion.identity);
+            GameObject invisWallBackRight = Instantiate(invisBoxPrefab, new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) + direction + rightDirection, Quaternion.identity);
+            GameObject invisWallBackLeft = Instantiate(invisBoxPrefab, new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) + direction + leftDirection, Quaternion.identity);
+            
+            _selectedWalls.Add(selectionWall);
+            _selectedWalls.Add(invisWallLeft);
+            _selectedWalls.Add(invisWallRight);
+            _selectedWalls.Add(invisWallBack);
+            _selectedWalls.Add(invisWallBackRight);
+            _selectedWalls.Add(invisWallBackLeft);
 
-        return;
+            _selectedTiles.Add(selectedTile);
+            _lastSelectedTile = selectedTile;
+        }
     }
 
     private bool CheckAdjacencyOfTiles(Tile tile1, Tile tile2)
@@ -155,12 +152,15 @@ public class TileSelector : MonoBehaviour
     private GameObject GetMouseHitObject()
     {
         Vector2 mousePosition = _inputActions.Player.Select.ReadValue<Vector2>();
-        Ray ray = Camera.main.ScreenPointToRay(mousePosition);
-        RaycastHit hit;
-
-        if (Physics.Raycast(ray, out hit, Mathf.Infinity, tileLayerMask))
+        if (Camera.main != null)
         {
-            return hit.collider.gameObject;
+            Ray ray = Camera.main.ScreenPointToRay(mousePosition);
+        
+            int tileLayerMask = LayerMask.GetMask("Tile");
+            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, tileLayerMask))
+            {
+                return hit.collider.gameObject;
+            }
         }
 
         return null;
@@ -175,7 +175,7 @@ public class TileSelector : MonoBehaviour
         _maxZ = int.MinValue;
 
         // Iterate over the walls list
-        foreach (Tile wall in _walls)
+        foreach (Tile wall in _wallTiles)
         {
             // Compare and update minX and maxX
             if (wall.X < _minX) _minX = wall.X;
@@ -248,38 +248,37 @@ public class TileSelector : MonoBehaviour
 
     private void BreakInnerWalls()
     {
-        List<Tile> innerWalls = new List<Tile>();
+        List<Tile> innerWallTiles = new List<Tile>();
 
         // Loop through the existing walls list
-        foreach (Tile wall in _walls)
+        foreach (Tile wallTile in _wallTiles)
         {
             // Check if the wall is not in the newOuterWalls list
-            if (!_newOuterWalls.Contains(wall))
+            if (!_newOuterWalls.Contains(wallTile))
             {
                 // This wall is an inner wall
-                innerWalls.Add(wall);
+                innerWallTiles.Add(wallTile);
             }
         }
 
         // Breaking inner walls
-        foreach (Tile innerWall in innerWalls)
+        foreach (Tile innerWallTile in innerWallTiles)
         {
-            BreakWallFromTile(innerWall);
+            BreakWallFromTile(innerWallTile);
         }
-        if(innerWalls.Count>0){
-            FloodFillNewOccupied(innerWalls[0]);
+        if(innerWallTiles.Count>0){
+            FloodFillNewOccupied(innerWallTiles[0]);
         }
     }
 
     private void BreakWallFromTile(Tile tile)
     {
-        Wall wall = tile.GetComponent<Wall>();
+        Wall wall = tile.GetComponentInChildren<Wall>();
         if (wall.archerTower != null)
         {
             Destroy(wall.archerTower);
         }
-        tile.LowerTile();
-        Destroy(wall);
+        wall.DestroyWall();
         // removing the tile from selected tiles if it exists 
         _selectedTiles.Remove(tile);
         tile.SetTileType(TileType.Empty);
@@ -318,6 +317,8 @@ public class TileSelector : MonoBehaviour
 
     private void BuildNewArcherTowers()
     {   
+        int[] directionsZ = { 0, 1, 0, -1 };
+        int[] directionsX = { 1, 0, -1, 0 };
         
         if(_selectedTiles.Count > 0)
         {
@@ -325,43 +326,39 @@ public class TileSelector : MonoBehaviour
             for (int i = 0; i < _selectedTiles.Count; i++)
             {
                 Tile currentTile = _selectedTiles[i];
-                List<Tile> adjacentWalls = new List<Tile>();
+                List<Tile> adjacentWallTiles = new List<Tile>();
 
                 // Check adjacent tiles (left, right, up, down) using TryGetComponent and archerTower check
-                if (_tiles[currentTile.Z, currentTile.X - 1].TryGetComponent(out Wall leftWall) && leftWall.archerTower == null)
-                    adjacentWalls.Add(_tiles[currentTile.Z, currentTile.X - 1]);
-
-                if (_tiles[currentTile.Z, currentTile.X + 1].TryGetComponent(out Wall rightWall) && rightWall.archerTower == null)
-                    adjacentWalls.Add(_tiles[currentTile.Z, currentTile.X + 1]);
-                    
-                if (_tiles[currentTile.Z - 1, currentTile.X].TryGetComponent(out Wall downWall) && downWall.archerTower == null)
-                    adjacentWalls.Add(_tiles[currentTile.Z - 1, currentTile.X]);
-            
-                if (_tiles[currentTile.Z + 1, currentTile.X].TryGetComponent(out Wall upWall) && upWall.archerTower == null)
-                    adjacentWalls.Add(_tiles[currentTile.Z + 1, currentTile.X]);
-                
+                for (int j = 0; j < directionsZ.Length; j++)
+                {
+                    Wall currentWall = _tiles[currentTile.Z + directionsZ[j], currentTile.X + directionsX[j]].GetComponentInChildren<Wall>(true);
+                    if (currentWall!=null && currentWall.archerTower == null)
+                        adjacentWallTiles.Add(_tiles[currentTile.Z + directionsZ[j], currentTile.X + directionsX[j]]);
+                }
 
                 // Check if exactly 2 adjacent walls are found
-                if (adjacentWalls.Count == 2)
+                if (adjacentWallTiles.Count == 2)
                 {
-                    Vector3 direction1 = new Vector3(currentTile.transform.position.x - adjacentWalls[0].transform.position.x, 0, currentTile.transform.position.z - adjacentWalls[0].transform.position.z);
-                    Vector3 direction2 = new Vector3(adjacentWalls[1].transform.position.x - currentTile.transform.position.x, 0, adjacentWalls[1].transform.position.z - currentTile.transform.position.z);
-
+                    Vector3 direction1 = new Vector3(currentTile.transform.position.x - adjacentWallTiles[0].transform.position.x,
+                        0, currentTile.transform.position.z - adjacentWallTiles[0].transform.position.z);
+                    Vector3 direction2 = new Vector3(adjacentWallTiles[1].transform.position.x - currentTile.transform.position.x,
+                        0, adjacentWallTiles[1].transform.position.z - currentTile.transform.position.z);
                     
                     // checks if the side walls have archer tower or not if at least one of them do go to next tile.
-                    if(_tiles[adjacentWalls[0].Z - Mathf.RoundToInt(direction1.z), adjacentWalls[0].X - Mathf.RoundToInt(direction1.x)].TryGetComponent<Wall>(out Wall otherWall)){
-                        if(otherWall.archerTower!=null) continue;
-                    }
-                    if(_tiles[adjacentWalls[1].Z + Mathf.RoundToInt(direction1.z), adjacentWalls[1].X + Mathf.RoundToInt(direction1.x)].TryGetComponent<Wall>(out Wall otherWall2)){
-                        if(otherWall2.archerTower!=null) continue;
-                    }
+                    Wall otherWall = _tiles[adjacentWallTiles[0].Z - Mathf.RoundToInt(direction1.z),
+                            adjacentWallTiles[0].X - Mathf.RoundToInt(direction1.x)].GetComponentInChildren<Wall>(true);
+                    if(otherWall!=null && otherWall.archerTower != null){ continue;}
+
+                    otherWall = _tiles[adjacentWallTiles[1].Z + Mathf.RoundToInt(direction1.z),
+                        adjacentWallTiles[1].X + Mathf.RoundToInt(direction1.x)].GetComponentInChildren<Wall>(true);
+                    if(otherWall!=null && otherWall.archerTower != null){ continue;}
 
                     // Check if the directions are aligned in one line
                     if (Vector3.Dot(direction1.normalized, direction2.normalized) > 0.99f)
                     {
-                        Wall currentWall = currentTile.GetComponent<Wall>();
-                        currentWall.BuildArcherTower();
-                        currentWall.archerTower.SetActive(false);
+                        Wall archerWall = currentTile.GetComponentInChildren<Wall>(true);
+                        archerWall.BuildArcherTower();
+                        archerWall.archerTower.SetActive(false);
                         archerTiles.Add(currentTile);
                     }
     
@@ -376,11 +373,13 @@ public class TileSelector : MonoBehaviour
         
     }
 
-    public void FinishBuildingWalls(){
+    private void FinishBuildingWalls(){
         foreach(Tile currentTile in _selectedTiles){
-            if(currentTile.TryGetComponent(out Wall currentWall)){
-                currentTile.RiseTile();
-                currentTile.GetComponent<MeshRenderer>().material = ResourceHolder.Instance.wallMaterial;
+            Wall currentWall = currentTile.GetComponentInChildren<Wall>(true);
+            if(currentWall!=null){
+                currentWall.gameObject.SetActive(true);
+                currentWall.RiseWall();
+                currentTile.GetComponent<MeshRenderer>().material = ResourceHolder.Instance.occupiedMaterial;
                 if (currentWall.archerTower != null)
                 {
                     currentWall.archerTower.SetActive(true); 

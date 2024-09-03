@@ -13,13 +13,16 @@ public class MapCreator : MonoBehaviour
     [SerializeField] int occupiedHeight;
     [SerializeField] GameObject cubePrefab;
 
-    public Tile[,] tiles;
-    public List<Tile> walls;
+    private Tile[,] _tiles;
+    private List<Tile> _wallTiles;
 
     // Start is called before the first frame update
     void Start()
     {
-        tiles = new Tile[height,width];
+        _tiles = new Tile[height,width];
+        _wallTiles = new List<Tile>();
+        ResourceHolder.Instance.tiles = _tiles;
+        ResourceHolder.Instance.walls = _wallTiles;
         CreateArea(width, height);
         SetOccupiedArea(occupiedWidth, occupiedHeight);
     }
@@ -36,8 +39,8 @@ public class MapCreator : MonoBehaviour
                 Vector3 position = new Vector3(startX + x, 0, startZ + z);
                 GameObject currentTile = Instantiate(cubePrefab, position, Quaternion.identity);
                 currentTile.transform.parent = transform;
-                tiles[z, x] = currentTile.GetComponent<Tile>();
-                tiles[z, x].Initialize(x, z);
+                _tiles[z, x] = currentTile.GetComponent<Tile>();
+                _tiles[z, x].Initialize(x, z);
             }
         }
     }
@@ -52,7 +55,7 @@ public class MapCreator : MonoBehaviour
         {
             for (int x = startX; x < startX + occupiedWidth; x++)
             {
-                tiles[z, x].SetTileType(TileType.Occupied);
+                _tiles[z, x].SetTileType(TileType.Occupied);
             }
         }
 
@@ -62,18 +65,21 @@ public class MapCreator : MonoBehaviour
         {
             counter++;
             // Bottom wall
-            tiles[startZ, x].SetTileType(TileType.Wall);
-            tiles[startZ, x].RiseTile();
-            walls.Add(tiles[startZ, x]);
+            Tile tileBot = _tiles[startZ, x];
+            tileBot.SetTileType(TileType.Wall);
+            tileBot.GetComponentInChildren<Wall>().RiseWall();
+            _wallTiles.Add(tileBot);
 
             // Top wall
-            tiles[startZ + occupiedHeight - 1, x].SetTileType(TileType.Wall);
-            tiles[startZ + occupiedHeight - 1, x].RiseTile();
-            walls.Add(tiles[startZ + occupiedHeight - 1, x]);
+            Tile tileTop = _tiles[startZ + occupiedHeight - 1, x]; 
+            tileTop.SetTileType(TileType.Wall);
+            tileTop.GetComponentInChildren<Wall>().RiseWall();
+            _wallTiles.Add(tileTop);
+            
             // Building archer towers on the middle wall if there are 3 consecutive walls
             if(counter%3 == 0 && x != startX + occupiedWidth -1){
-                tiles[startZ, x].GetComponent<Wall>().BuildArcherTower();
-                tiles[startZ + occupiedHeight - 1, x].GetComponent<Wall>().BuildArcherTower();
+                tileBot.GetComponentInChildren<Wall>().BuildArcherTower();
+                tileTop.GetComponentInChildren<Wall>().BuildArcherTower();
             }
         }
         counter=0;
@@ -82,18 +88,20 @@ public class MapCreator : MonoBehaviour
         {
             counter++;
             // Left wall
-            tiles[z, startX].SetTileType(TileType.Wall);
-            tiles[z, startX].RiseTile();
-            walls.Add(tiles[z, startX]);
+            Tile tileLeft = _tiles[z, startX];
+            tileLeft.SetTileType(TileType.Wall);
+            tileLeft.GetComponentInChildren<Wall>().RiseWall();
+            _wallTiles.Add(tileLeft);
 
             // Right wall
-            tiles[z, startX + occupiedWidth - 1].SetTileType(TileType.Wall);
-            tiles[z, startX + occupiedWidth - 1].RiseTile();
-            walls.Add(tiles[z, startX + occupiedWidth - 1]);
+            Tile tileRight = _tiles[z, startX + occupiedWidth - 1];
+            tileRight.SetTileType(TileType.Wall);
+            tileRight.GetComponentInChildren<Wall>().RiseWall();
+            _wallTiles.Add(tileRight);
             // Building archer towers on the middle wall if there are 3 consecutive walls
             if(counter%3 == 0 && z != startZ + occupiedHeight -1){
-                tiles[z, startX].GetComponent<Wall>().BuildArcherTower();
-                tiles[z, startX + occupiedWidth - 1].GetComponent<Wall>().BuildArcherTower();
+                tileLeft.GetComponentInChildren<Wall>().BuildArcherTower();
+                tileRight.GetComponentInChildren<Wall>().BuildArcherTower();
             }
         }
         
