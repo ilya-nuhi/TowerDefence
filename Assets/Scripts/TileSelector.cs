@@ -274,6 +274,10 @@ public class TileSelector : MonoBehaviour
     private void BreakWallFromTile(Tile tile)
     {
         Wall wall = tile.GetComponentInChildren<Wall>();
+        if (!wall)
+        {
+            return;
+        }
         if (wall.archerTower != null)
         {
             Destroy(wall.archerTower);
@@ -298,10 +302,8 @@ public class TileSelector : MonoBehaviour
             Tile current = queue.Dequeue();
 
             // Skip if already visited
-            if (visited.Contains(current))
+            if (!visited.Add(current))
                 continue;
-
-            visited.Add(current);
 
             if (current.Type == TileType.Empty)
             {

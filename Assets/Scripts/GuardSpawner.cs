@@ -102,4 +102,12 @@ public class GuardSpawner : MonoBehaviour
         EventManager.Instance.FinishBuildingWalls();
         RetreatGuardsToBase();
     }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Enemy"))
+        {
+            Destroy(other.gameObject);
+        }
+    }
 }

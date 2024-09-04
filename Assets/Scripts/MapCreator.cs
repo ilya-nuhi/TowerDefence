@@ -84,7 +84,7 @@ public class MapCreator : MonoBehaviour
         }
         counter=0;
         // Build vertical walls (left and right)
-        for (int z = startZ; z < startZ + occupiedHeight; z++)
+        for (int z = startZ+1; z < startZ + occupiedHeight-1; z++)
         {
             counter++;
             // Left wall

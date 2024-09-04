@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 2773943803917396291}
   m_Layer: 0
   m_Name: TowerGuard
-  m_TagString: Untagged
+  m_TagString: TowerGuard
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
