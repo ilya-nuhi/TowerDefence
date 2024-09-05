@@ -11,11 +11,13 @@ public class EnemyController : MonoBehaviour
     [SerializeField] private LayerMask wallLayer; // Layer mask to filter walls
     [SerializeField] private NavMeshAgent navAgent;  // Reference to the enemy's NavMeshAgent
     private Tile[,] _tiles;
-
+    [SerializeField] private float damagePerSecond = 10f; // Damage dealt per second to walls
+    
     private void Start()
     {
         _tiles = ResourceHolder.Instance.tiles;
         baseTower = GameObject.FindGameObjectWithTag("Base").transform;
+        StartCoroutine(DetectAndDamageWallsCoroutine());
     }
 
     void Update()
@@ -42,20 +44,17 @@ public class EnemyController : MonoBehaviour
             // Check for a gap between the closest wall and its neighbors
             if (IsGapBetweenWalls(closestWall))
             {
-                // Debug.Log("found gap!");
                 // If there's a gap, move to the base tower
                 StartCoroutine(SetDestinationAfterDelay(baseTower.position));
             }
             else
             {
-                // Debug.Log("moving closest wall!");
                 // Otherwise, move to the closest wall
                 navAgent.SetDestination(closestWall.position);
             }
         }
         else
         {
-            // Debug.Log("no walls are found");
             // If no walls are found, move to the base tower
             navAgent.SetDestination(baseTower.position);
         }
@@ -85,106 +84,102 @@ public class EnemyController : MonoBehaviour
                 closestWall = currentWall.transform;
             }
         }
-
         return closestWall;
     }
 
     bool IsGapBetweenWalls(Transform wall)
-{
-    Queue<Tile> queue = new Queue<Tile>();
-    HashSet<Tile> visited = new HashSet<Tile>();
-    Tile tile = wall.gameObject.GetComponentInParent<Tile>();
-    queue.Enqueue(tile);
-
-    int[] directionsZ = { 0, 1, 0, -1 };
-    int[] directionsX = { 1, 0, -1, 0 };
-    bool isFirstTile = true;
-
-    // Debug.Log($"Starting gap check for wall at position: {wall.position}");
-
-    while (queue.Count > 0)
     {
-        Tile currentTile = queue.Dequeue();
-        // Debug.Log($"Checking tile at position: {currentTile.transform.position}");
+        Queue<Tile> queue = new Queue<Tile>();
+        HashSet<Tile> visited = new HashSet<Tile>();
+        Tile tile = wall.gameObject.GetComponentInParent<Tile>();
+        queue.Enqueue(tile);
 
-        // Skip if already visited
-        if (!visited.Add(currentTile))
+        int[] directionsZ = { 0, 1, 0, -1 };
+        int[] directionsX = { 1, 0, -1, 0 };
+        bool isFirstTile = true;
+
+        while (queue.Count > 0)
         {
-            // Debug.Log($"Tile at position {currentTile.transform.position} already visited.");
-            continue;
-        }
+            Tile currentTile = queue.Dequeue();
 
-        int unvisitedWallsCount = 0;
-        bool hasGap = true;
+            // Skip if already visited
+            if (!visited.Add(currentTile)) { continue; }
 
-        for (int i = 0; i < directionsZ.Length; i++)
-        {
-            int nextZ = currentTile.Z + directionsZ[i];
-            int nextX = currentTile.X + directionsX[i];
-            
-            // Ensure the next tile is within bounds before accessing it
-            if (nextZ < 0 || nextZ >= _tiles.GetLength(0) || nextX < 0 || nextX >= _tiles.GetLength(1))
+            int unvisitedWallsCount = 0;
+            bool hasGap = true;
+
+            for (int i = 0; i < directionsZ.Length; i++)
             {
-                // Debug.Log($"Next tile at ({nextZ}, {nextX}) is out of bounds.");
-                continue;
-            }
+                int nextZ = currentTile.Z + directionsZ[i];
+                int nextX = currentTile.X + directionsX[i];
+                
+                // Ensure the next tile is within bounds before accessing it
+                if (nextZ < 0 || nextZ >= _tiles.GetLength(0) || nextX < 0 || nextX >= _tiles.GetLength(1)) 
+                { continue; }
 
-            Tile nextTile = _tiles[nextZ, nextX];
-            // Debug.Log($"Evaluating adjacent tile at position: {nextTile.transform.position}");
+                Tile nextTile = _tiles[nextZ, nextX];
 
-            if (visited.Contains(nextTile))
-            {
-                // Debug.Log($"Adjacent tile at position {nextTile.transform.position} already visited.");
-                continue;
-            }
+                if (visited.Contains(nextTile)) { continue; }
 
-            if (nextTile.Type == TileType.Wall)
-            {
-                Wall nextWall = nextTile.GetComponentInChildren<Wall>();
-                if (!nextWall)
+                if (nextTile.Type == TileType.Wall)
                 {
-                    // Debug.Log($"Gap detected: No wall component found at adjacent tile {nextTile.transform.position}.");
+                    Wall nextWall = nextTile.GetComponentInChildren<Wall>();
+                    if (!nextWall) { return true; }
+
+                    hasGap = false;
+                    unvisitedWallsCount++;
+
+                    // Check distance from the original wall
+                    if (Vector3.Distance(wall.position, nextTile.transform.position) > detectionRadius / 2) { continue; }
+                    
+                    queue.Enqueue(nextTile);
+                }
+            }
+
+            if (isFirstTile)
+            {
+                isFirstTile = false;
+                // First tile has less than 2 unvisited adjacent walls. Considering it as a gap
+                if (unvisitedWallsCount < 2)
+                {
                     return true;
                 }
-
-                hasGap = false;
-                unvisitedWallsCount++;
-
-                // Check distance from the original wall
-                if (Vector3.Distance(wall.position, nextTile.transform.position) > detectionRadius / 2)
-                {
-                    // Debug.Log($"Skipping tile at {nextTile.transform.position} as it is beyond half the detection radius.");
-                    continue;
-                }
-
-                // Debug.Log($"Enqueuing adjacent tile at {nextTile.transform.position} for further checks.");
-                queue.Enqueue(nextTile);
             }
-        }
 
-        if (isFirstTile)
-        {
-            isFirstTile = false;
-            // First tile has less than 2 unvisited adjacent walls. Considering it as a gap
-            if (unvisitedWallsCount < 2)
+            if (hasGap)
             {
-                // Debug.Log($"Gap detected: First tile at {currentTile.transform.position} has less than 2 unvisited adjacent walls.");
                 return true;
             }
         }
-
-        if (hasGap)
-        {
-            // Debug.Log($"Gap detected near tile at position {currentTile.transform.position}.");
-            return true;
-        }
+        return false;
     }
 
-    // Debug.Log("No gaps detected.");
-    return false;
-}
+    private IEnumerator DetectAndDamageWallsCoroutine()
+    {
+        while (true)
+        {
+            DetectAndDamageWalls();
+            yield return new WaitForSeconds(1);
+        }
+    }
+    
+    void DetectAndDamageWalls()
+    {
+        Collider[] results = new Collider[8];
+        var size = Physics.OverlapSphereNonAlloc(transform.position, 0.75f, results, wallLayer);
 
-
+        for (int i = 0; i < size; i++)
+        {
+            Collider currentCollider = results[i];
+            
+            Health wallHealth = currentCollider.GetComponent<Health>();
+            if (wallHealth != null)
+            {
+                wallHealth.TakeDamage(damagePerSecond);
+            }
+            
+        }
+    }
 
     void OnDrawGizmos()
     {

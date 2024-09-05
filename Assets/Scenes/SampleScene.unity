@@ -351,7 +351,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemy: {fileID: 8400611351850784270, guid: 96a3a41cfa3fc2e47b38e86b2c83c743, type: 3}
-  spawnInterval: 3
+  spawnInterval: 6
 --- !u!4 &729282170
 Transform:
   m_ObjectHideFlags: 0
@@ -521,7 +521,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemy: {fileID: 8400611351850784270, guid: 96a3a41cfa3fc2e47b38e86b2c83c743, type: 3}
-  spawnInterval: 3
+  spawnInterval: 6
 --- !u!4 &1403123088
 Transform:
   m_ObjectHideFlags: 0
@@ -644,7 +644,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemy: {fileID: 8400611351850784270, guid: 96a3a41cfa3fc2e47b38e86b2c83c743, type: 3}
-  spawnInterval: 3
+  spawnInterval: 6
 --- !u!4 &1574295824
 Transform:
   m_ObjectHideFlags: 0
@@ -815,7 +815,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemy: {fileID: 8400611351850784270, guid: 96a3a41cfa3fc2e47b38e86b2c83c743, type: 3}
-  spawnInterval: 3
+  spawnInterval: 6
 --- !u!4 &2123807482
 Transform:
   m_ObjectHideFlags: 0
