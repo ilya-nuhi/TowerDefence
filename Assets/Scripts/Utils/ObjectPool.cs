@@ -35,7 +35,7 @@ public class ObjectPool : Singleton<ObjectPool>
     public void ReturnWall(GameObject wall)
     {
         wall.transform.parent = transform;
-        wall.GetComponent<Health>().ResetHealth();
+        wall.GetComponent<WallHealth>().ResetHealth();
         wall.SetActive(false);
         _wallPool.Enqueue(wall);
     }

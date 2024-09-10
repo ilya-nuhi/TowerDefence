@@ -161,7 +161,7 @@ MonoBehaviour:
   occupiedMaterial: {fileID: 2100000, guid: e490d4f743a105940b52086c1707069c, type: 2}
   emptyMaterial: {fileID: 2100000, guid: ec8d8710f73ed8c44a383d3f22dab270, type: 2}
   constructMaterial: {fileID: 2100000, guid: bcc2d24f809385d419eb6ecd0ec393d0, type: 2}
-  archerTowerPrefap: {fileID: 919132149155446097, guid: 91359a826c04198458ac96d5b5e5231b, type: 3}
+  archerTowerPrefap: {fileID: 2922455402062375394, guid: c475314b0c0c8af4f8a60e6b08f05b53, type: 3}
 --- !u!4 &403724296
 Transform:
   m_ObjectHideFlags: 0

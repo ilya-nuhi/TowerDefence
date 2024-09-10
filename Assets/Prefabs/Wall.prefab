@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 4979425196321555066}
   - component: {fileID: 5019507611811801779}
   - component: {fileID: 107773485991619561}
-  - component: {fileID: 583585169304993749}
+  - component: {fileID: 4539169320449673027}
   m_Layer: 7
   m_Name: Wall
   m_TagString: Wall
@@ -121,7 +121,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   archerTower: {fileID: 0}
---- !u!114 &583585169304993749
+--- !u!114 &4539169320449673027
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -130,7 +130,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1663942890945622154}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 062fc5ac007243547a785b79af1353fc, type: 3}
+  m_Script: {fileID: 11500000, guid: 119e003bc7c1ff643af7e70d673297e5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 100
