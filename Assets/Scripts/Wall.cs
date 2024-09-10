@@ -6,12 +6,24 @@ using UnityEngine;
 public class Wall : MonoBehaviour
 {
     public GameObject archerTower;
+    private List<Tile> _wallTiles;
+
+    private void Start()
+    {
+        _wallTiles = ResourceHolder.Instance.wallTiles;
+    }
 
     public void RiseWall(){
         StartCoroutine(RiseWallCoroutine());
     }
 
     public void DestroyWall(){
+        Tile tile = GetComponentInParent<Tile>();
+        if (_wallTiles!=null)
+        {
+            _wallTiles.Remove(tile);
+        }
+        if (tile != null) tile.SetTileType(TileType.Empty);
         StartCoroutine(DestroyWallCoroutine());
     }
     
@@ -48,10 +60,10 @@ public class Wall : MonoBehaviour
             elapsed += Time.deltaTime;
             yield return null;
         }
-
+        
         transform.position = endPos; // Ensure it ends at the exact final position
         
-        Destroy(gameObject);
+        ObjectPool.Instance.ReturnWall(this.gameObject);
     }
     
     public void BuildArcherTower(){

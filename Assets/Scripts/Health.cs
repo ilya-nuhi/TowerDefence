@@ -81,6 +81,11 @@ public class Health : MonoBehaviour
         canvasGroup.alpha = 0f;
     }
 
+    public void ResetHealth()
+    {
+        _currentHealth = maxHealth;
+    }
+
     private void DestroyWall()
     {
         // Handle wall destruction logic

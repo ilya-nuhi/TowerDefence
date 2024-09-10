@@ -3,7 +3,6 @@ using UnityEngine;
 
 public class EnemySpawner : MonoBehaviour
 {
-    [SerializeField] private GameObject enemy;  // The enemy prefab to spawn
     [SerializeField] private float spawnInterval = 5f;  // Time interval between spawns
     // Start is called before the first frame update
     void Start()
@@ -21,8 +20,8 @@ public class EnemySpawner : MonoBehaviour
             // Wait for the specified interval before spawning the next enemy
             yield return new WaitForSeconds(spawnInterval);
             // Spawn the enemy at the specified spawn point
-            Instantiate(enemy, transform.position, Quaternion.identity);
-           
+            ObjectPool.Instance.GetEnemy(transform.position);
         }
     }
+    
 }

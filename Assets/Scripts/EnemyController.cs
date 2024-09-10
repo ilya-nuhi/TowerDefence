@@ -12,53 +12,89 @@ public class EnemyController : MonoBehaviour
     [SerializeField] private NavMeshAgent navAgent;  // Reference to the enemy's NavMeshAgent
     private Tile[,] _tiles;
     [SerializeField] private float damagePerSecond = 10f; // Damage dealt per second to walls
+    private Coroutine _checkingCoroutine; // Store reference to the coroutine
+    private bool _startCalled = false;
+    private void OnEnable()
+    {
+        
+        if (_startCalled)
+        {
+            // Wait until Start is called before doing anything
+            // Start the CheckingCoroutine only after Start has been called
+            _checkingCoroutine = StartCoroutine(CheckingCoroutine());
+        }
+    }
+
+    // Called when the GameObject is disabled
+    private void OnDisable()
+    {
+        // Stop the CheckingCoroutine when the enemy is disabled
+        if (_checkingCoroutine != null)
+        {
+            StopCoroutine(_checkingCoroutine);
+        }
+        
+    }
     
     private void Start()
     {
         _tiles = ResourceHolder.Instance.tiles;
         baseTower = GameObject.FindGameObjectWithTag("Base").transform;
-        StartCoroutine(DetectAndDamageWallsCoroutine());
+        StartCoroutine(CheckingCoroutine());
+        _startCalled = true;
     }
 
-    void Update()
+    private void UpdateDestination()
+{
+    // wait until the navmesh is set
+    if (!navAgent.isOnNavMesh) 
     {
-        // wait until the navmesh is set
-        if (!navAgent.isOnNavMesh) return;
-        
-        // Send a ray downward to check the tile below
-        if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit))
-        {
-            Tile tileBelow = hit.collider.GetComponent<Tile>();
-            // Enemy is in the occupied area set its destination to base tower
-            if (tileBelow != null && tileBelow.Type == TileType.Occupied)
-            {
-                StartCoroutine(SetDestinationAfterDelay(baseTower.position));
-                return;
-            }
-        }
-        // Find the closest wall
-        Transform closestWall = FindClosestWall();
-        if (closestWall != null)
-        {
+        Debug.LogWarning($"{gameObject.name} is not on the NavMesh.");
+        return;
+    }
 
-            // Check for a gap between the closest wall and its neighbors
-            if (IsGapBetweenWalls(closestWall))
-            {
-                // If there's a gap, move to the base tower
-                StartCoroutine(SetDestinationAfterDelay(baseTower.position));
-            }
-            else
-            {
-                // Otherwise, move to the closest wall
-                navAgent.SetDestination(closestWall.position);
-            }
+    // Send a ray downward to check the tile below
+    if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit))
+    {
+        Tile tileBelow = hit.collider.GetComponent<Tile>();
+        // Enemy is in the occupied area set its destination to base tower
+        if (tileBelow != null && tileBelow.Type == TileType.Occupied)
+        {
+            _checkingCoroutine = StartCoroutine(SetDestinationAfterDelay(baseTower.position));
+            return;
+        }
+    }
+
+    // Find the closest wall
+    Transform closestWall = FindClosestWall();
+    if (closestWall != null)
+    {
+        //Check for a gap between the closest wall and its neighbors
+        if (IsGapBetweenWalls(closestWall))
+        {
+            // If there's a gap, move to the base tower
+            StartCoroutine(SetDestinationAfterDelay(baseTower.position));
         }
         else
         {
-            // If no walls are found, move to the base tower
-            navAgent.SetDestination(baseTower.position);
+            // Otherwise, move to the closest wall
+            navAgent.SetDestination(closestWall.position);
         }
     }
+    else
+    {
+        // If no walls are found, move to the closest edge
+        if (navAgent.FindClosestEdge(out var closestEdge))
+        {
+            navAgent.SetDestination(closestEdge.position);
+        }
+        else
+        {
+            Debug.LogWarning($"{gameObject.name} couldn't find any edges to move to.");
+        }
+    }
+}
+
     
     IEnumerator SetDestinationAfterDelay(Vector3 destination)
     {
@@ -66,7 +102,7 @@ public class EnemyController : MonoBehaviour
         yield return new WaitForSeconds(1);
         navAgent.SetDestination(destination);
     }
-
+    
     Transform FindClosestWall()
     {
         Collider[] hitColliders = new Collider[100];
@@ -154,10 +190,11 @@ public class EnemyController : MonoBehaviour
         return false;
     }
 
-    private IEnumerator DetectAndDamageWallsCoroutine()
+    private IEnumerator CheckingCoroutine()
     {
         while (true)
         {
+            UpdateDestination();
             DetectAndDamageWalls();
             yield return new WaitForSeconds(1);
         }

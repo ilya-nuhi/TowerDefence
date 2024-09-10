@@ -4,17 +4,17 @@ using UnityEngine;
 
 public class EventManager : Singleton<EventManager>
 {
-    public event Action<List<Tile>> OnSpawnTowerGuards;
-    public event Action OnFinishBuildingWalls;
+    public event Action<List<Tile>, List<Tile>> OnSpawnTowerGuards;
+    public event Action<List<Tile>> OnFinishBuildingWalls;
     public event Action OnUpdateNavMesh;
     
-    public void SpawnTowerGuards(List<Tile> destinationTiles)
+    public void SpawnTowerGuards(List<Tile> destinationTiles, List<Tile> wallTiles)
     {
-        OnSpawnTowerGuards?.Invoke(destinationTiles);
+        OnSpawnTowerGuards?.Invoke(destinationTiles, wallTiles);
     }
 
-    public void FinishBuildingWalls(){
-        OnFinishBuildingWalls?.Invoke();
+    public void FinishBuildingWalls(List<Tile> archerTiles){
+        OnFinishBuildingWalls?.Invoke(archerTiles);
     }
     public void UpdateNavMesh()
     {

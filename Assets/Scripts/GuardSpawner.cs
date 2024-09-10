@@ -6,10 +6,11 @@ using UnityEngine;
 
 public class GuardSpawner : MonoBehaviour
 {
-    [SerializeField] private TowerGuard guardPrefab;
+    [SerializeField] private int buildingTime = 5;
+    
     private Tile _startTile;
-    private List<TowerGuard> _towerGuards;
-    private int _guardsAtDestination = 0;
+    private Dictionary<List<TowerGuard>, List<Tile>> _guardsAndWallsList;
+    private Dictionary<List<TowerGuard>, int> _guardsReachedDict; // Track reached guards per batch
 
     private void OnEnable()
     {
@@ -27,7 +28,8 @@ public class GuardSpawner : MonoBehaviour
     void Start()
     {
         StartCoroutine(DetectTileAfterFrame());
-        _towerGuards = new List<TowerGuard>();
+        _guardsAndWallsList = new Dictionary<List<TowerGuard>, List<Tile>>();
+        _guardsReachedDict = new Dictionary<List<TowerGuard>, int>();
     }
 
     private IEnumerator DetectTileAfterFrame()
@@ -54,60 +56,81 @@ public class GuardSpawner : MonoBehaviour
         }
     }
 
-    private void SpawnTowerGuards(List<Tile> destTiles)
-    {   
-        _guardsAtDestination = 0;
-        
-        foreach(Tile destTile in destTiles){
-            TowerGuard guard = Instantiate(guardPrefab, new Vector3(transform.position.x, 1, transform.position.z), Quaternion.identity);
-            guard.OnReachedDestination += OnGuardReachedDestination;
-            guard.SetDestination(destTile.transform);
-            _towerGuards.Add(guard);
+    private void SpawnTowerGuards(List<Tile> destTiles, List<Tile> wallTiles)
+    {
+        if (destTiles.Count == 0)
+        {
+            StartCoroutine(FinishBuildingCoroutine(new KeyValuePair<List<TowerGuard>, List<Tile>>(null, wallTiles)));
+            return;
         }
 
-        if (destTiles.Count==0)
+        List<TowerGuard> guards = new List<TowerGuard>();
+        foreach (Tile destTile in destTiles)
         {
-            StartCoroutine(FinishBuildingCoroutine());
+            TowerGuard guard = ObjectPool.Instance.GetTowerGuard(_startTile.transform).GetComponent<TowerGuard>();
+            guard.OnReachedDestination += OnGuardReachedDestination;
+            guard.SetDestination(destTile.transform);
+            guards.Add(guard);
         }
+        // Create a copy of the wallTiles list
+        List<Tile> wallTilesCopy = new List<Tile>(wallTiles);
+        // Track this batch of guards
+        _guardsAndWallsList[guards] = wallTilesCopy;
+        _guardsReachedDict[guards] = 0; // Initialize the count of reached guards for this batch
     }
     
     private void OnGuardReachedDestination(TowerGuard guard)
     {
-        _guardsAtDestination++;
-        guard.OnReachedDestination -= OnGuardReachedDestination;
-
-        if (_guardsAtDestination == _towerGuards.Count)
+        // Find which batch the guard belongs to
+        foreach (var guardsBatch in _guardsAndWallsList)
         {
-            StartCoroutine(FinishBuildingCoroutine());
+            if (guardsBatch.Key.Contains(guard))
+            {
+                _guardsReachedDict[guardsBatch.Key]++; // Increment the reached count for this batch
+
+                // Check if all guards in this batch have reached their destination
+                if (_guardsReachedDict[guardsBatch.Key] == guardsBatch.Key.Count)
+                {
+                    StartCoroutine(FinishBuildingCoroutine(guardsBatch));
+                    _guardsAndWallsList.Remove(guardsBatch.Key); // Remove this batch from the dict
+                    _guardsReachedDict.Remove(guardsBatch.Key); // Remove tracking for this batch
+                }
+
+                break;
+            }
         }
+
+        guard.OnReachedDestination -= OnGuardReachedDestination; // Unsubscribe from the event
     }
 
-    private void RetreatGuardsToBase(){
-        for (int i = _towerGuards.Count-1; i >= 0; i--)
+    private void RetreatGuardsToBase(List<TowerGuard> guards = null)
+    {
+        if (guards == null)return;
+        foreach (var guard in guards)
         {
-            _towerGuards[i].OnReachedDestination += OnGuardReturnedToBase;
-            _towerGuards[i].SetDestination(_startTile.transform);
-            _towerGuards.Remove(_towerGuards[i]);
+            guard.OnReachedDestination += OnGuardReturnedToBase;
+            guard.SetDestination(_startTile.transform);
         }
+        
     }
     private void OnGuardReturnedToBase(TowerGuard guard)
     {
         guard.OnReachedDestination -= OnGuardReturnedToBase;
-        Destroy(guard.gameObject);
+        ObjectPool.Instance.ReturnTowerGuard(guard.gameObject);
     }
 
-    private IEnumerator FinishBuildingCoroutine(){
+    private IEnumerator FinishBuildingCoroutine(KeyValuePair<List<TowerGuard>, List<Tile>>? guardsBatch = null){
         // Wait 5 seconds for wall to build
-        yield return new WaitForSeconds(5);
-        EventManager.Instance.FinishBuildingWalls();
-        RetreatGuardsToBase();
+        yield return new WaitForSeconds(buildingTime);
+        EventManager.Instance.FinishBuildingWalls(guardsBatch?.Value);
+        RetreatGuardsToBase(guardsBatch?.Key);
     }
 
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Enemy"))
         {
-            Destroy(other.gameObject);
+            ObjectPool.Instance.ReturnEnemy(other.gameObject);
         }
     }
 }

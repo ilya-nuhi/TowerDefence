@@ -27,11 +27,14 @@ public class Tile : MonoBehaviour
         
         switch (type)
         {
+            case TileType.Empty:
+                GetComponent<MeshRenderer>().material = ResourceHolder.Instance.emptyMaterial;
+                break;
             case TileType.Occupied:
                 GetComponent<MeshRenderer>().material = ResourceHolder.Instance.occupiedMaterial;
                 break;
             case TileType.Wall:
-                GameObject wall = Instantiate(ResourceHolder.Instance.wallPrefab, transform.position, Quaternion.identity);
+                GameObject wall = ObjectPool.Instance.GetWall(this);
                 wall.transform.parent = transform;
                 break;
         }

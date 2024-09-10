@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -50,7 +51,7 @@ public class TileSelector : MonoBehaviour
 
     private void Start() {
         _tiles = ResourceHolder.Instance.tiles;
-        _wallTiles = ResourceHolder.Instance.walls;
+        _wallTiles = ResourceHolder.Instance.wallTiles;
     }
 
     private void StartSelection(InputAction.CallbackContext context)
@@ -88,7 +89,9 @@ public class TileSelector : MonoBehaviour
             FindNewOuterWalls();
             BreakInnerWalls();
             BuildNewArcherTowers();
-            _wallTiles = new List<Tile>(_newOuterWalls);
+            _wallTiles.Clear();
+            _wallTiles.AddRange(_newOuterWalls);
+            _canExpand = true;
             EventManager.Instance.UpdateNavMesh();
         }
         else{
@@ -245,6 +248,7 @@ public class TileSelector : MonoBehaviour
             }
         }
     }
+    
 
     private void BreakInnerWalls()
     {
@@ -267,13 +271,18 @@ public class TileSelector : MonoBehaviour
             BreakWallFromTile(innerWallTile);
         }
         if(innerWallTiles.Count>0){
-            FloodFillNewOccupied(innerWallTiles[0]);
+            FloodFillNewOccupied(innerWallTiles);
+        }
+        else
+        {
+            FindInnerEmptyTilesAndOccupy();
         }
     }
 
     private void BreakWallFromTile(Tile tile)
     {
-        Wall wall = tile.GetComponentInChildren<Wall>();
+        Wall wall = tile.GetComponentInChildren<Wall>(true);
+        wall.gameObject.SetActive(true);
         if (!wall)
         {
             return;
@@ -285,14 +294,13 @@ public class TileSelector : MonoBehaviour
         wall.DestroyWall();
         // removing the tile from selected tiles if it exists 
         _selectedTiles.Remove(tile);
-        tile.SetTileType(TileType.Empty);
     }
 
-    private void FloodFillNewOccupied(Tile tile)
+    private void FloodFillNewOccupied(List<Tile> tiles)
     {
         // Create a stack for flood fill (or a queue if you prefer BFS)
         Queue<Tile> queue = new Queue<Tile>();
-        queue.Enqueue(tile);
+        foreach (Tile tile in tiles) queue.Enqueue(tile);
 
         // Track visited tiles
         HashSet<Tile> visited = new HashSet<Tile>();
@@ -316,6 +324,68 @@ public class TileSelector : MonoBehaviour
             }
         }
     }
+
+    // if there is no inner wall breaked while building new walls, then find the new occupied tiles with using selectedtiles
+    private void FindInnerEmptyTilesAndOccupy()
+    {
+        int[] directionsZ = { 0, 1, 0, -1, 1, 1, -1, -1 };
+        int[] directionsX = { 1, 0, -1, 0, 1, -1, 1, -1 };
+        HashSet<Tile> innerEmptyTiles = new HashSet<Tile>();
+        HashSet<Tile> visitedTiles = new HashSet<Tile>();
+
+        // Loop through each selected tile
+        foreach (var selectedTile in _selectedTiles)
+        {
+            List<Tile> possibleTiles = new List<Tile>();
+
+            // Check the surrounding tiles (8 directions)
+            for (int i = 0; i < 8; i++)
+            {
+                var searchedTile = _tiles[selectedTile.Z + directionsZ[i], selectedTile.X + directionsX[i]];
+                if (!visitedTiles.Add(searchedTile)) { continue; }
+                if (searchedTile.Type != TileType.Empty) { continue; }
+
+                // Check surrounding tiles of the neighbor to see if it is adjacent to an occupied tile
+                for (int j = 0; j < 8; j++)
+                {
+                    Tile adjacentTile = _tiles[searchedTile.Z + directionsZ[j], searchedTile.X + directionsX[j]];
+                    if (adjacentTile.Type == TileType.Occupied)
+                    {
+                        possibleTiles.Add(searchedTile);
+                        break;
+                    }
+                }
+            }
+
+            // If more than one possible tile is found, find the closest one to the last selected tile
+            if (possibleTiles.Count > 1)
+            {
+                float minDistance = int.MaxValue;
+                Tile minTile = null;
+
+                foreach (var tile in possibleTiles)
+                {
+                    float distance = Vector3.Distance(tile.transform.position, _selectedTiles[^1].transform.position);
+
+                    if (distance < minDistance)
+                    {
+                        minDistance = distance;
+                        minTile = tile;
+                    }
+                }
+                
+                innerEmptyTiles.Add(minTile);
+            }
+            else if (possibleTiles.Count == 1)
+            {
+                innerEmptyTiles.Add(possibleTiles[0]);
+            }
+        }
+
+        // Call flood fill function with inner empty tiles
+        FloodFillNewOccupied(innerEmptyTiles.ToList());
+    }
+
 
     private void BuildNewArcherTowers()
     {   
@@ -369,14 +439,14 @@ public class TileSelector : MonoBehaviour
             }
 
             // After setting walls spawn tower guards to position on the archertiles
-            EventManager.Instance.SpawnTowerGuards(archerTiles);
+            EventManager.Instance.SpawnTowerGuards(archerTiles, _selectedTiles);
 
         }
         
     }
 
-    private void FinishBuildingWalls(){
-        foreach(Tile currentTile in _selectedTiles){
+    private void FinishBuildingWalls(List<Tile> wallTiles){
+        foreach(Tile currentTile in wallTiles){
             Wall currentWall = currentTile.GetComponentInChildren<Wall>(true);
             if(currentWall!=null){
                 currentWall.gameObject.SetActive(true);

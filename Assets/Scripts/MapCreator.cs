@@ -22,7 +22,7 @@ public class MapCreator : MonoBehaviour
         _tiles = new Tile[height,width];
         _wallTiles = new List<Tile>();
         ResourceHolder.Instance.tiles = _tiles;
-        ResourceHolder.Instance.walls = _wallTiles;
+        ResourceHolder.Instance.wallTiles = _wallTiles;
         CreateArea(width, height);
         SetOccupiedArea(occupiedWidth, occupiedHeight);
     }
@@ -84,7 +84,7 @@ public class MapCreator : MonoBehaviour
         }
         counter=0;
         // Build vertical walls (left and right)
-        for (int z = startZ+1; z < startZ + occupiedHeight-1; z++)
+        for (int z = startZ+1; z < startZ + occupiedHeight - 1; z++)
         {
             counter++;
             // Left wall
