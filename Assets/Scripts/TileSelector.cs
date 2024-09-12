@@ -181,7 +181,7 @@ public class TileSelector : MonoBehaviour
         {
             Ray ray = Camera.main.ScreenPointToRay(mousePosition);
         
-            int tileLayerMask = LayerMask.GetMask("Tile");
+            int tileLayerMask = LayerMask.GetMask("Tile", "MouseBlocker");
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, tileLayerMask))
             {
                 return hit.collider.gameObject;

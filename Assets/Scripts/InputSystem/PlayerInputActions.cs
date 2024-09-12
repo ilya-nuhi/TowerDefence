@@ -44,6 +44,24 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""MoveCameraXZ"",
+                    ""type"": ""Value"",
+                    ""id"": ""6705f851-f4c3-4a28-86d5-d3c2167db6b7"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""MoveCameraScroll"",
+                    ""type"": ""Value"",
+                    ""id"": ""7f8ce389-f56b-48ed-8e91-6839f2b9d17a"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
                 }
             ],
             ""bindings"": [
@@ -68,6 +86,94 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
                     ""action"": ""Click"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""2D Vector"",
+                    ""id"": ""51dd3ab9-3a37-411d-b716-dfe4993b2ddd"",
+                    ""path"": ""2DVector"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""MoveCameraXZ"",
+                    ""isComposite"": true,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""up"",
+                    ""id"": ""a5f15665-a0ff-4ef4-9be2-6a59d940f083"",
+                    ""path"": ""<Keyboard>/w"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""MoveCameraXZ"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""down"",
+                    ""id"": ""94c1025d-7ae2-481f-9c00-26741157d401"",
+                    ""path"": ""<Keyboard>/s"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""MoveCameraXZ"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""left"",
+                    ""id"": ""b5e2ba78-1974-423d-935f-ddbd1606a8a9"",
+                    ""path"": ""<Keyboard>/a"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""MoveCameraXZ"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""right"",
+                    ""id"": ""280ab6df-de6d-4f77-8ad6-33e1443a6eec"",
+                    ""path"": ""<Keyboard>/d"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""MoveCameraXZ"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""1D Axis"",
+                    ""id"": ""d1a142b1-db53-4fce-a246-d907b4a86f11"",
+                    ""path"": ""1DAxis"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""MoveCameraScroll"",
+                    ""isComposite"": true,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""negative"",
+                    ""id"": ""5694c505-f2d5-4595-86c7-db50e30c4daf"",
+                    ""path"": ""<Mouse>/scroll/down"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""MoveCameraScroll"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""positive"",
+                    ""id"": ""fcec4a2e-c041-47c9-b073-5c1b2286ab9d"",
+                    ""path"": ""<Mouse>/scroll/up"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""MoveCameraScroll"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
                 }
             ]
         }
@@ -78,6 +184,8 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
         m_Player = asset.FindActionMap("Player", throwIfNotFound: true);
         m_Player_Select = m_Player.FindAction("Select", throwIfNotFound: true);
         m_Player_Click = m_Player.FindAction("Click", throwIfNotFound: true);
+        m_Player_MoveCameraXZ = m_Player.FindAction("MoveCameraXZ", throwIfNotFound: true);
+        m_Player_MoveCameraScroll = m_Player.FindAction("MoveCameraScroll", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -141,12 +249,16 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
     private List<IPlayerActions> m_PlayerActionsCallbackInterfaces = new List<IPlayerActions>();
     private readonly InputAction m_Player_Select;
     private readonly InputAction m_Player_Click;
+    private readonly InputAction m_Player_MoveCameraXZ;
+    private readonly InputAction m_Player_MoveCameraScroll;
     public struct PlayerActions
     {
         private @PlayerInputActions m_Wrapper;
         public PlayerActions(@PlayerInputActions wrapper) { m_Wrapper = wrapper; }
         public InputAction @Select => m_Wrapper.m_Player_Select;
         public InputAction @Click => m_Wrapper.m_Player_Click;
+        public InputAction @MoveCameraXZ => m_Wrapper.m_Player_MoveCameraXZ;
+        public InputAction @MoveCameraScroll => m_Wrapper.m_Player_MoveCameraScroll;
         public InputActionMap Get() { return m_Wrapper.m_Player; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -162,6 +274,12 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
             @Click.started += instance.OnClick;
             @Click.performed += instance.OnClick;
             @Click.canceled += instance.OnClick;
+            @MoveCameraXZ.started += instance.OnMoveCameraXZ;
+            @MoveCameraXZ.performed += instance.OnMoveCameraXZ;
+            @MoveCameraXZ.canceled += instance.OnMoveCameraXZ;
+            @MoveCameraScroll.started += instance.OnMoveCameraScroll;
+            @MoveCameraScroll.performed += instance.OnMoveCameraScroll;
+            @MoveCameraScroll.canceled += instance.OnMoveCameraScroll;
         }
 
         private void UnregisterCallbacks(IPlayerActions instance)
@@ -172,6 +290,12 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
             @Click.started -= instance.OnClick;
             @Click.performed -= instance.OnClick;
             @Click.canceled -= instance.OnClick;
+            @MoveCameraXZ.started -= instance.OnMoveCameraXZ;
+            @MoveCameraXZ.performed -= instance.OnMoveCameraXZ;
+            @MoveCameraXZ.canceled -= instance.OnMoveCameraXZ;
+            @MoveCameraScroll.started -= instance.OnMoveCameraScroll;
+            @MoveCameraScroll.performed -= instance.OnMoveCameraScroll;
+            @MoveCameraScroll.canceled -= instance.OnMoveCameraScroll;
         }
 
         public void RemoveCallbacks(IPlayerActions instance)
@@ -193,5 +317,7 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
     {
         void OnSelect(InputAction.CallbackContext context);
         void OnClick(InputAction.CallbackContext context);
+        void OnMoveCameraXZ(InputAction.CallbackContext context);
+        void OnMoveCameraScroll(InputAction.CallbackContext context);
     }
 }

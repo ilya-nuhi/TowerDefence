@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 8427847668589729958}
   - component: {fileID: 3760037499033698200}
   - component: {fileID: 2773943803917396291}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: TowerGuard
   m_TagString: TowerGuard
   m_Icon: {fileID: 0}
