@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 5019507611811801779}
   - component: {fileID: 107773485991619561}
   - component: {fileID: 4539169320449673027}
+  - component: {fileID: 6812241130997482146}
   m_Layer: 7
   m_Name: Wall
   m_TagString: Wall
@@ -136,6 +137,22 @@ MonoBehaviour:
   maxHealth: 100
   healthSlider: {fileID: 1948164700010713700}
   canvasGroup: {fileID: 2353293772731189602}
+--- !u!208 &6812241130997482146
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1663942890945622154}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.5, y: 0.6, z: 0.5}
+  m_MoveThreshold: 0
+  m_Carve: 1
+  m_CarveOnlyStationary: 1
+  m_Center: {x: 0, y: 0, z: 0}
+  m_TimeToStationary: 0
 --- !u!1 &2005057694879516393
 GameObject:
   m_ObjectHideFlags: 0

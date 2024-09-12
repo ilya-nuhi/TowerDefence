@@ -406,7 +406,6 @@ GameObject:
   - component: {fileID: 1635393633664435024}
   - component: {fileID: 8001916717656135143}
   - component: {fileID: 4998752988833611743}
-  - component: {fileID: -901553685351230372}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Enemy
@@ -539,7 +538,7 @@ NavMeshAgent:
   m_StoppingDistance: 0
   m_AutoTraverseOffMeshLink: 1
   m_AutoBraking: 1
-  m_AutoRepath: 0
+  m_AutoRepath: 1
   m_Height: 2
   m_BaseOffset: 1
   m_WalkableMask: 4294967295
@@ -559,25 +558,6 @@ MonoBehaviour:
   maxHealth: 100
   healthSlider: {fileID: 704120701592726286}
   canvasGroup: {fileID: 8243330161911170842}
---- !u!114 &-901553685351230372
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8400611351850784270}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_OverrideArea: 0
-  m_Area: 0
-  m_OverrideGenerateLinks: 0
-  m_GenerateLinks: 0
-  m_IgnoreFromBuild: 1
-  m_ApplyToChildren: 1
-  m_AffectedAgents: ffffffff
 --- !u!1 &8673604313027008872
 GameObject:
   m_ObjectHideFlags: 0

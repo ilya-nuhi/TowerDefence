@@ -4,9 +4,8 @@ public class WallHealth : Health
 {
     private Wall _wall;
 
-    protected override void Start()
+    protected void Start()
     {
-        base.Start();
         _wall = GetComponent<Wall>();
     }
 
@@ -14,5 +13,23 @@ public class WallHealth : Health
     {
         _wall.DestroyWall();
         EventManager.Instance.UpdateNavMesh();
+    }
+    
+    public override void TakeDamage(float amount)
+    {
+        _currentHealth -= amount;
+        if (_currentHealth < 0) _currentHealth = 0;
+
+        if (healthSlider != null)
+        {
+            healthSlider.value = _currentHealth;
+        }
+
+        if (_currentHealth <= 0)
+        {
+            HandleZeroHealth();
+        }
+        
+        ShowHealthBar();
     }
 }

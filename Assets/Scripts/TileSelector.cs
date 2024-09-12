@@ -13,8 +13,10 @@ public class TileSelector : MonoBehaviour
     private Tile[,] _tiles;
     private List<Tile> _wallTiles;
     private List<GameObject> _selectedWalls;
+    private List<GameObject> _invisWalls;
     private List<Tile> _selectedTiles;
     private Tile _lastSelectedTile;
+    private Tile _firstSelectedTile;
     private List<Tile> _newOuterWalls;
     private bool _isSelecting;
     private bool _canExpand = true;
@@ -61,10 +63,12 @@ public class TileSelector : MonoBehaviour
         // if object has no tile component it should stop checking its type too
         if(_startObj.TryGetComponent(out Tile selectedTile) && selectedTile.Type == TileType.Wall){
             _selectedWalls = new List<GameObject>();
+            _invisWalls = new List<GameObject>();
             _selectedTiles = new List<Tile>();
-            GameObject selectionWall = Instantiate(selectionBoxPrefab, new Vector3(_startObj.transform.position.x, 1, _startObj.transform.position.z), Quaternion.identity);
+            GameObject selectionWall = ObjectPool.Instance.GetSelectionBox(selectedTile.transform.position);
             _selectedWalls.Add(selectionWall);
             _lastSelectedTile = selectedTile;
+            _firstSelectedTile = selectedTile;
             _isSelecting = true;
             _canExpand = false;
         }
@@ -74,37 +78,45 @@ public class TileSelector : MonoBehaviour
     {
         if (!_isSelecting) return;
         _isSelecting = false;
-        GameObject nextTile = GetMouseHitObject();
+        _canExpand = true;
 
-        // If the wall selection is valid expand.
-        if(nextTile.TryGetComponent<Tile>(out Tile selectedTile) && selectedTile.Type == TileType.Wall && CheckAdjacencyOfTiles(_lastSelectedTile, selectedTile)){
-            foreach(Tile tile in _selectedTiles){
-                if(tile.Type == TileType.Empty){
-                    tile.SetTileType(TileType.Wall);
-                    tile.GetComponentInChildren<Wall>().gameObject.SetActive(false);
-                    tile.GetComponent<MeshRenderer>().material = ResourceHolder.Instance.constructMaterial;
-                    _wallTiles.Add(tile);
+        if (_firstSelectedTile.Type == TileType.Wall)
+        {   
+            GameObject nextTile = GetMouseHitObject();
+
+            // If the wall selection is valid expand.
+            if(nextTile.TryGetComponent<Tile>(out Tile selectedTile) && selectedTile.Type == TileType.Wall && CheckAdjacencyOfTiles(_lastSelectedTile, selectedTile)){
+                foreach(Tile tile in _selectedTiles){
+                    if(tile.Type == TileType.Empty){
+                        tile.SetTileType(TileType.Wall);
+                        tile.GetComponentInChildren<Wall>().gameObject.SetActive(false);
+                        tile.GetComponent<MeshRenderer>().material = ResourceHolder.Instance.constructMaterial;
+                        _wallTiles.Add(tile);
+                    }
                 }
+                FindNewOuterWalls();
+                BreakInnerWalls();
+                BuildNewArcherTowers();
+                _wallTiles.Clear();
+                _wallTiles.AddRange(_newOuterWalls);
+                EventManager.Instance.UpdateNavMesh();
             }
-            FindNewOuterWalls();
-            BreakInnerWalls();
-            BuildNewArcherTowers();
-            _wallTiles.Clear();
-            _wallTiles.AddRange(_newOuterWalls);
-            _canExpand = true;
-            EventManager.Instance.UpdateNavMesh();
         }
-        else{
-            _canExpand = true;
-        }
-
+        
         // Destroy all GameObjects in _selectedWalls
         foreach (GameObject selectionWall in _selectedWalls)
         {
-            Destroy(selectionWall);
+            ObjectPool.Instance.ReturnSelectionBox(selectionWall);
         }
+
+        foreach (var invisWall in _invisWalls)
+        {
+            ObjectPool.Instance.ReturnInvisBox(invisWall);
+        }
+        
         // Clear the references for selected walls
         _selectedWalls.Clear();
+        _invisWalls.Clear();
         
     }
 
@@ -112,7 +124,7 @@ public class TileSelector : MonoBehaviour
         if (!_isSelecting) return;
         GameObject nextTile = GetMouseHitObject();
         if(nextTile.TryGetComponent(out Tile selectedTile) && selectedTile.Type == TileType.Empty && CheckAdjacencyOfTiles(_lastSelectedTile, selectedTile)){
-            GameObject selectionWall = Instantiate(selectionBoxPrefab, new Vector3(nextTile.transform.position.x, 1, nextTile.transform.position.z), Quaternion.identity);
+            GameObject selectionWall = ObjectPool.Instance.GetSelectionBox(selectedTile.transform.position);
 
             // Calculate the direction from the last selected tile to the new tile
             Vector3 direction = new Vector3(_lastSelectedTile.X - selectedTile.X , 0, _lastSelectedTile.Z - selectedTile.Z);
@@ -120,18 +132,28 @@ public class TileSelector : MonoBehaviour
             Vector3 leftDirection = new Vector3(-direction.z, 0, direction.x);
             Vector3 rightDirection = new Vector3(direction.z, 0, -direction.x);
             // Invisible walls are to prevent building walls next to each other
-            GameObject invisWallLeft = Instantiate(invisBoxPrefab, new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) + leftDirection, Quaternion.identity);
-            GameObject invisWallRight = Instantiate(invisBoxPrefab, new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) + rightDirection, Quaternion.identity);
-            GameObject invisWallBack = Instantiate(invisBoxPrefab, new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) + direction, Quaternion.identity);
-            GameObject invisWallBackRight = Instantiate(invisBoxPrefab, new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) + direction + rightDirection, Quaternion.identity);
-            GameObject invisWallBackLeft = Instantiate(invisBoxPrefab, new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) + direction + leftDirection, Quaternion.identity);
+            GameObject invisWallLeft = ObjectPool.Instance.GetInvisBox(
+                new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) +
+                leftDirection);
+            GameObject invisWallRight = ObjectPool.Instance.GetInvisBox(
+                new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) +
+                rightDirection);
+            GameObject invisWallBack = ObjectPool.Instance.GetInvisBox(
+                new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) +
+                direction);
+            GameObject invisWallBackRight = ObjectPool.Instance.GetInvisBox(
+                new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) +
+                direction);
+            GameObject invisWallBackLeft = ObjectPool.Instance.GetInvisBox(
+                new Vector3(_lastSelectedTile.transform.position.x, 1, _lastSelectedTile.transform.position.z) +
+                direction);
             
             _selectedWalls.Add(selectionWall);
-            _selectedWalls.Add(invisWallLeft);
-            _selectedWalls.Add(invisWallRight);
-            _selectedWalls.Add(invisWallBack);
-            _selectedWalls.Add(invisWallBackRight);
-            _selectedWalls.Add(invisWallBackLeft);
+            _invisWalls.Add(invisWallLeft);
+            _invisWalls.Add(invisWallRight);
+            _invisWalls.Add(invisWallBack);
+            _invisWalls.Add(invisWallBackRight);
+            _invisWalls.Add(invisWallBackLeft);
 
             _selectedTiles.Add(selectedTile);
             _lastSelectedTile = selectedTile;
@@ -287,10 +309,6 @@ public class TileSelector : MonoBehaviour
         {
             return;
         }
-        if (wall.archerTower != null)
-        {
-            Destroy(wall.archerTower);
-        }
         wall.DestroyWall();
         // removing the tile from selected tiles if it exists 
         _selectedTiles.Remove(tile);
@@ -430,7 +448,7 @@ public class TileSelector : MonoBehaviour
                     {
                         Wall archerWall = currentTile.GetComponentInChildren<Wall>(true);
                         archerWall.BuildArcherTower();
-                        archerWall.archerTower.SetActive(false);
+                        archerWall.archerTower.gameObject.SetActive(false);
                         archerTiles.Add(currentTile);
                     }
     
@@ -454,7 +472,7 @@ public class TileSelector : MonoBehaviour
                 currentTile.GetComponent<MeshRenderer>().material = ResourceHolder.Instance.occupiedMaterial;
                 if (currentWall.archerTower != null)
                 {
-                    currentWall.archerTower.SetActive(true); 
+                    currentWall.archerTower.gameObject.SetActive(true); 
                 }
                 
             }

@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.AI;
 
 public class EnemySpawner : MonoBehaviour
 {
@@ -19,8 +20,19 @@ public class EnemySpawner : MonoBehaviour
 
             // Wait for the specified interval before spawning the next enemy
             yield return new WaitForSeconds(spawnInterval);
-            // Spawn the enemy at the specified spawn point
-            ObjectPool.Instance.GetEnemy(transform.position);
+
+            // Get the enemy from the object pool
+            Enemy enemy = ObjectPool.Instance.GetEnemy(transform.position);
+
+            // Disable the NavMeshAgent to prevent it from calculating paths prematurely
+            enemy.navAgent.enabled = false;
+            
+            // Wait for one or more frames to ensure the NavMesh system updates properly
+            yield return new WaitForSeconds(0.1f);
+
+            // Re-enable the NavMeshAgent
+            enemy.navAgent.enabled = true;
+            
         }
     }
     

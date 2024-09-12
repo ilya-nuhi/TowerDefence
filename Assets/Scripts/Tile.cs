@@ -34,7 +34,7 @@ public class Tile : MonoBehaviour
                 GetComponent<MeshRenderer>().material = ResourceHolder.Instance.occupiedMaterial;
                 break;
             case TileType.Wall:
-                GameObject wall = ObjectPool.Instance.GetWall(this);
+                Wall wall = ObjectPool.Instance.GetWall(this);
                 wall.transform.parent = transform;
                 break;
         }

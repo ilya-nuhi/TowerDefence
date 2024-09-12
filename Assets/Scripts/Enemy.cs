@@ -17,24 +17,19 @@ public class Enemy : MonoBehaviour
     private Vector3 _currentDestination;
     private void OnEnable()
     {
-        // EventManager.Instance.OnUpdateNavMesh += UpdateDestination;
+        // resetting current destination in order setdestinationifchanged to work
+        _currentDestination = Vector3.zero;
         if (_startCalled)
         {
             // Wait until Start is called before doing anything
             // Start the CheckingCoroutine only after Start has been called
             _checkingCoroutine = StartCoroutine(CheckingCoroutine());
-            // UpdateDestination();
         }
     }
 
     // Called when the GameObject is disabled
     private void OnDisable()
     {
-        // if (EventManager.Instance != null)
-        // {
-        //     EventManager.Instance.OnUpdateNavMesh -= UpdateDestination;
-        // }
-        // Stop the CheckingCoroutine when the enemy is disabled
         if (_checkingCoroutine != null)
         {
             StopCoroutine(_checkingCoroutine);
@@ -47,7 +42,6 @@ public class Enemy : MonoBehaviour
         _tiles = ResourceHolder.Instance.tiles;
         baseTower = GameObject.FindGameObjectWithTag("Base").transform;
         StartCoroutine(CheckingCoroutine());
-        // UpdateDestination();
         _startCalled = true;
     }
 
@@ -56,14 +50,16 @@ public class Enemy : MonoBehaviour
         // Wait until the navmesh is set
         if (!navAgent.isOnNavMesh) 
         {
-            Debug.LogWarning($"{gameObject.name} is not on the NavMesh.");
+            //Debug.LogWarning($"{gameObject.name} is not on the NavMesh.");
             return;
         }
+        
 
         // Send a ray downward to check the tile below
         if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit))
         {
             Tile tileBelow = hit.collider.GetComponent<Tile>();
+
             // Enemy is in the occupied area set its destination to base tower
             if (tileBelow != null && tileBelow.Type == TileType.Occupied)
             {
@@ -79,28 +75,19 @@ public class Enemy : MonoBehaviour
             // Check for a gap between the closest wall and its neighbors
             if (IsGapBetweenWalls(closestWall))
             {
-                // If there's a gap, move to the base tower
-                StartCoroutine(SetDestinationAfterDelay(baseTower.position));
+                SetDestinationIfChanged(baseTower.position);
             }
             else
             {
-                // Otherwise, move to the closest wall
                 SetDestinationIfChanged(closestWall.position);
             }
         }
         else
         {
-            // If no walls are found, move to the closest edge
-            if (navAgent.FindClosestEdge(out var closestEdge))
-            {
-                SetDestinationIfChanged(closestEdge.position);
-            }
-            else
-            {
-                Debug.LogWarning($"{gameObject.name} couldn't find any edges to move to.");
-            }
+            SetDestinationIfChanged(baseTower.position);
         }
     }
+
 
     // Helper method to check and update destination only if it changed to avoid unnecessary path calculation
     private void SetDestinationIfChanged(Vector3 newDestination)
@@ -109,21 +96,8 @@ public class Enemy : MonoBehaviour
         {
             _currentDestination = newDestination;  // Update stored destination
             navAgent.SetDestination(newDestination);  // Set the new destination
-            Debug.Log($"{gameObject.name} is setting a new destination to: {newDestination}");
         }
-        else
-        {
-            Debug.Log($"{gameObject.name} destination remains unchanged.");
-        }
-    }
-
-
-    
-    IEnumerator SetDestinationAfterDelay(Vector3 destination)
-    {
-        // wait 1 second to navmesh to update for walls
-        yield return new WaitForSeconds(1);
-        SetDestinationIfChanged(destination);
+        
     }
     
     Transform FindClosestWall()
@@ -233,7 +207,7 @@ public class Enemy : MonoBehaviour
             Collider currentCollider = results[i];
             
             Health wallHealth = currentCollider.GetComponent<Health>();
-            if (wallHealth != null)
+            if (wallHealth != null && wallHealth.isActiveAndEnabled)
             {
                 wallHealth.TakeDamage(damagePerSecond);
             }

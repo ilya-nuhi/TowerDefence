@@ -18,7 +18,7 @@ public class EventManager : Singleton<EventManager>
     }
     public void UpdateNavMesh()
     {
-        OnUpdateNavMesh?.Invoke();
+        // OnUpdateNavMesh?.Invoke();
     }
     
 }

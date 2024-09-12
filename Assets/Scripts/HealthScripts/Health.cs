@@ -1,4 +1,6 @@
+using System;
 using System.Collections;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,12 +12,31 @@ public class Health : MonoBehaviour
     protected float _currentHealth;
     private Coroutine _fadeOutBarCoroutine;
 
-    protected virtual void Start()
+
+    private void OnEnable()
     {
-        ResetHealth();
+        _currentHealth = maxHealth;
+
+        if (healthSlider != null)
+        {
+            healthSlider.maxValue = maxHealth;
+            healthSlider.value = _currentHealth;
+        }
+        if (canvasGroup != null)
+        {
+            canvasGroup.alpha = 0f;
+        }
     }
 
-    public void TakeDamage(float amount)
+    private void OnDisable()
+    {
+        if (_fadeOutBarCoroutine != null)
+        {
+            StopCoroutine(_fadeOutBarCoroutine);
+        }
+    }
+
+    public virtual void TakeDamage(float amount)
     {
         _currentHealth -= amount;
         if (_currentHealth < 0) _currentHealth = 0;
@@ -29,13 +50,16 @@ public class Health : MonoBehaviour
         {
             HandleZeroHealth();
         }
+        else
+        {
+            ShowHealthBar();
+        }
 
-        ShowHealthBar();
     }
 
     protected virtual void HandleZeroHealth(){}
 
-    private void ShowHealthBar()
+    protected void ShowHealthBar()
     {
         if (_fadeOutBarCoroutine != null)
         {
@@ -66,19 +90,5 @@ public class Health : MonoBehaviour
 
         canvasGroup.alpha = 0f;
     }
-
-    public virtual void ResetHealth()
-    {
-        _currentHealth = maxHealth;
-
-        if (healthSlider != null)
-        {
-            healthSlider.maxValue = maxHealth;
-            healthSlider.value = _currentHealth;
-        }
-        if (canvasGroup != null)
-        {
-            canvasGroup.alpha = 0f;
-        }
-    }
+    
 }

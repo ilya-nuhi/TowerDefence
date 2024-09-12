@@ -8,11 +8,18 @@ public class ArcherTower : MonoBehaviour
     public GameObject arrowPrefab; // Prefab of the arrow
     public Transform arrowSpawnPoint; // Spawn point of the arrow
     public float arrowSpeed = 20f; // Speed of the arrow
+    [SerializeField] private SphereCollider towerCollider;
+    [SerializeField] private LayerMask enemyLayerMask;
 
     private float _nextFireTime;
-    private List<Enemy> _enemiesInRange = new List<Enemy>();
+    private List<EnemyHealth> _enemyHealthsInRange;
     private Enemy _targetEnemy;
 
+    void OnEnable()
+    {
+        RebuildEnemiesInRange();
+    }
+    
     void Update()
     {
         // Fire at the closest enemy if one is in range
@@ -23,8 +30,45 @@ public class ArcherTower : MonoBehaviour
         }
     }
     
+    // Rebuild the list of enemies currently in the collider area
+    private void RebuildEnemiesInRange()
+    {
+        // Clear the current list
+        _enemyHealthsInRange = new List<EnemyHealth>();
+        Collider[] results = new Collider[100];
+        // Detect all colliders within the detection area
+        var size = Physics.OverlapSphereNonAlloc(transform.position, towerCollider.radius, results, enemyLayerMask);
+
+        for (int i = 0; i < size; i++)
+        {
+            // Check if the collider belongs to an enemy
+            EnemyHealth enemyHealth = results[i].GetComponent<EnemyHealth>();
+            if (enemyHealth != null)
+            {
+                _enemyHealthsInRange.Add(enemyHealth);
+                enemyHealth.OnDeath += RemoveEnemyFromRange;
+            }
+        }
+
+        // Optionally, set the target enemy if there are any in range
+        if (_enemyHealthsInRange.Count > 0)
+        {
+            _targetEnemy = _enemyHealthsInRange[0].GetComponent<Enemy>();  // Set the first enemy as the target
+        }
+        else
+        {
+            _targetEnemy = null;  // No enemies in range
+        }
+    }
+    
+    
     private void ShootAtEnemy()
     {
+        if (_targetEnemy == null) return;
+        if (!_targetEnemy.isActiveAndEnabled)
+        {
+            SetNewTargetAndRemoveInactive();
+        }
         if (_targetEnemy == null) return;
         
         // Get the enemy's velocity (if they have a NavMeshAgent)
@@ -47,9 +91,10 @@ public class ArcherTower : MonoBehaviour
         transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, 1);
 
         // Instantiate and shoot the arrow
-        GameObject arrow = Instantiate(arrowPrefab, arrowSpawnPoint.position, arrowSpawnPoint.rotation);
-        Rigidbody rb = arrow.GetComponent<Rigidbody>();
-        rb.velocity = direction * arrowSpeed;
+        Arrow arrow = ObjectPool.Instance.GetArrow(arrowSpawnPoint.position, arrowSpawnPoint.rotation);
+        arrow.rigidBody.isKinematic = false;
+        
+        arrow.rigidBody.velocity = direction * arrowSpeed;
     }
 
     // Called when an enemy enters the tower's range
@@ -57,12 +102,17 @@ public class ArcherTower : MonoBehaviour
     {
         if (other.CompareTag("Enemy"))
         {
-
-            Enemy newEnemy = other.GetComponent<Enemy>();
-            _enemiesInRange.Add(newEnemy);
+            
+            EnemyHealth newEnemyHealth = other.GetComponent<EnemyHealth>();
+            if (!_enemyHealthsInRange.Contains(newEnemyHealth))
+            {
+                _enemyHealthsInRange.Add(newEnemyHealth);
+                newEnemyHealth.OnDeath += RemoveEnemyFromRange;
+            }
+            
             if (_targetEnemy==null)
             {
-                _targetEnemy  = newEnemy;
+                _targetEnemy  = newEnemyHealth.GetComponent<Enemy>();
             }
         }
     }
@@ -72,19 +122,66 @@ public class ArcherTower : MonoBehaviour
     {
         if (other.CompareTag("Enemy"))
         {
-            Enemy quittingEnemy = other.GetComponent<Enemy>();
-            _enemiesInRange.Remove(quittingEnemy);
-            if (_targetEnemy == quittingEnemy)
+            EnemyHealth quittingEnemyHealth = other.GetComponent<EnemyHealth>();
+            _enemyHealthsInRange.Remove(quittingEnemyHealth);
+            quittingEnemyHealth.OnDeath -= RemoveEnemyFromRange;
+            if (_targetEnemy == quittingEnemyHealth.GetComponent<Enemy>())
             {
-                if (_enemiesInRange.Count == 0)
-                {
-                    _targetEnemy  = null;
-                }
-                else
-                {
-                    _targetEnemy  = _enemiesInRange[0];
-                }
+                SetNewTargetAndRemoveInactive();
             }
         }
     }
+
+    private void SetNewTargetAndRemoveInactive()
+    {
+        if (_enemyHealthsInRange.Count > 0)
+        {
+            for (int i = 0; i < _enemyHealthsInRange.Count; i++)
+            {
+                var enemyHealth = _enemyHealthsInRange[i];
+
+                if (enemyHealth!=null && enemyHealth.isActiveAndEnabled && IsEnemyInTriggerArea(enemyHealth))
+                {
+                    _targetEnemy = enemyHealth.GetComponent<Enemy>(); // Set the first valid enemy as the target
+                    break; // Stop after finding the first valid enemy
+                }
+                else
+                {
+                    _enemyHealthsInRange.RemoveAt(i); // Remove invalid enemy
+                    enemyHealth.OnDeath -= RemoveEnemyFromRange;
+                    i--; // Adjust index after removal to avoid skipping elements
+                }
+            }
+        }
+
+        // If no valid enemies are found in range, set target to null
+        if (_enemyHealthsInRange.Count == 0)
+        {
+            _targetEnemy = null;
+        }
+    }
+
+    // Helper method to check if an enemy is still in the trigger area
+    private bool IsEnemyInTriggerArea(EnemyHealth enemyHealth)
+    {
+        float distance = Vector3.Distance(transform.position, enemyHealth.transform.position);
+        return distance <= towerCollider.radius * transform.localScale.x; // Adjust for scaling
+    }
+    
+    private void RemoveEnemyFromRange(EnemyHealth enemyHealth)
+    {
+        if (_enemyHealthsInRange.Contains(enemyHealth))
+        {
+            _enemyHealthsInRange.Remove(enemyHealth);
+            enemyHealth.OnDeath -= RemoveEnemyFromRange;
+
+            // If the target enemy was the one that died, set a new target
+            if (_targetEnemy == enemyHealth.GetComponent<Enemy>())
+            {
+                SetNewTargetAndRemoveInactive();
+            }
+        }
+    }
+    
 }
+

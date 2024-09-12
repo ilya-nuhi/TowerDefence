@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class Wall : MonoBehaviour
 {
-    public GameObject archerTower;
+    public ArcherTower archerTower;
     private List<Tile> _wallTiles;
 
     private void Start()
@@ -63,14 +63,19 @@ public class Wall : MonoBehaviour
         
         transform.position = endPos; // Ensure it ends at the exact final position
         
-        ObjectPool.Instance.ReturnWall(this.gameObject);
+        // return the wall and archer tower instances to pool
+        ObjectPool.Instance.ReturnWall(this);
+        if (archerTower != null)
+        {
+            ObjectPool.Instance.ReturnArcher(archerTower);
+            archerTower = null;
+        }
     }
     
     public void BuildArcherTower(){
         // wait 1 second to wall to build
-        archerTower = Instantiate(ResourceHolder.Instance.archerTowerPrefap, 
-                                    new Vector3(transform.position.x, transform.position.y + 0.5f, transform.position.z),
-                                    Quaternion.identity); 
+        archerTower = ObjectPool.Instance.GetArcher(new Vector3(transform.position.x, transform.position.y + 0.5f,
+            transform.position.z));
         archerTower.transform.parent = transform;
     }
 

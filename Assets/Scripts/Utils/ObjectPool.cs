@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,93 +6,161 @@ public class ObjectPool : Singleton<ObjectPool>
     [SerializeField] private GameObject wallPrefab;
     [SerializeField] private GameObject towerGuardPrefab;
     [SerializeField] private GameObject enemyPrefab;
+    [SerializeField] private GameObject selectionBoxPrefab;
+    [SerializeField] private GameObject invisBoxPrefab;
+    [SerializeField] private GameObject archerPrefab;
+    [SerializeField] private GameObject arrowPrefab;
     
-    private Queue<GameObject> _wallPool = new Queue<GameObject>();
-    private Queue<GameObject> _towerGuardPool = new Queue<GameObject>();
-    private Queue<GameObject> _enemyPool = new Queue<GameObject>();
+    
+    private ObjectPooler<Wall> _wallPool;
+    private ObjectPooler<TowerGuard> _towerGuardPool;
+    private ObjectPooler<Enemy> _enemyPool;
+    private ObjectPooler<GameObject> _selectionBoxPool;
+    private ObjectPooler<GameObject> _invisBoxPool;
+    private ObjectPooler<ArcherTower> _archerPool;
+    private ObjectPooler<Arrow> _arrowPool;
 
-    // Method to get a wall object from the pool
-    public GameObject GetWall(Tile wallTile)
+    protected override void Awake()
     {
-        GameObject wall;
-        if (_wallPool.Count > 0)
-        {
-            wall = _wallPool.Dequeue();
-            wall.transform.position = wallTile.transform.position;
-            wall.SetActive(true);
-            
-        }
-        else
-        {
-            wall = Instantiate(wallPrefab, wallTile.transform.position, Quaternion.identity);
-        }
+        base.Awake();
+        _wallPool = new ObjectPooler<Wall>(wallPrefab);
+        _towerGuardPool = new ObjectPooler<TowerGuard>(towerGuardPrefab);
+        _enemyPool = new ObjectPooler<Enemy>(enemyPrefab);
+        _selectionBoxPool = new ObjectPooler<GameObject>(selectionBoxPrefab);
+        _invisBoxPool = new ObjectPooler<GameObject>(invisBoxPrefab);
+        _archerPool = new ObjectPooler<ArcherTower>(archerPrefab);
+        _arrowPool = new ObjectPooler<Arrow>(arrowPrefab);
+    }
+
+    public Wall GetWall(Tile wallTile)
+    {
+        Wall wall = _wallPool.GetObject();
+        wall.transform.position = wallTile.transform.position;
         wall.transform.parent = wallTile.transform;
         return wall;
     }
 
-    // Method to return a wall object to the pool
-    public void ReturnWall(GameObject wall)
+    public void ReturnWall(Wall wall)
     {
         wall.transform.parent = transform;
-        wall.GetComponent<WallHealth>().ResetHealth();
-        wall.SetActive(false);
-        _wallPool.Enqueue(wall);
+        _wallPool.ReturnObject(wall);
     }
 
-    // Method to get a tower guard object from the pool
-    public GameObject GetTowerGuard(Transform guardSpawner)
+    public TowerGuard GetTowerGuard(Transform guardSpawner)
     {
-        GameObject towerGuard;
-        if (_towerGuardPool.Count > 0)
-        {
-            towerGuard = _towerGuardPool.Dequeue();
-            towerGuard.transform.position = new Vector3(guardSpawner.position.x, 1, guardSpawner.position.z);
-            towerGuard.SetActive(true);
-        }
-        else
-        {
-            towerGuard = Instantiate(towerGuardPrefab, guardSpawner.position, Quaternion.identity);
-            towerGuard.transform.parent = transform;
-        }
-        
+        TowerGuard towerGuard = _towerGuardPool.GetObject();
+        towerGuard.transform.position = new Vector3(guardSpawner.position.x, 1, guardSpawner.position.z);
         return towerGuard;
     }
 
-    // Method to return a tower guard object to the pool
-    public void ReturnTowerGuard(GameObject towerGuard)
+    public void ReturnTowerGuard(TowerGuard towerGuard)
     {
-        towerGuard.SetActive(false);
-        _towerGuardPool.Enqueue(towerGuard);
+        _towerGuardPool.ReturnObject(towerGuard);
     }
 
-    // Method to get an enemy object from the pool
-    public GameObject GetEnemy(Vector3 position)
+    public Enemy GetEnemy(Vector3 position)
     {
-        GameObject enemy;
-        if (_enemyPool.Count > 0)
-        {
-            enemy = _enemyPool.Dequeue();
-            enemy.transform.position = position;
-            enemy.SetActive(true);
-            
-        }
-        else
-        {
-            enemy = Instantiate(enemyPrefab, position, Quaternion.identity);
-        }
-        
+        Enemy enemy = _enemyPool.GetObject();
+        enemy.transform.position = position;
         return enemy;
     }
 
-    // Method to return an enemy object to the pool
-    public void ReturnEnemy(GameObject enemy)
+    public void ReturnEnemy(Enemy enemy)
     {
-        enemy.SetActive(false);
-        _enemyPool.Enqueue(enemy);
+        _enemyPool.ReturnObject(enemy);
+        enemy.navAgent.enabled = false;
+    }
+
+    public GameObject GetSelectionBox(Vector3 position)
+    {
+        GameObject selectionBox = _selectionBoxPool.GetObject();
+        selectionBox.transform.position = new Vector3(position.x, 1, position.z);
+        return selectionBox;
+    }
+
+    public void ReturnSelectionBox(GameObject selectionBox)
+    {
+        _selectionBoxPool.ReturnObject(selectionBox);
     }
     
+    public GameObject GetInvisBox(Vector3 position)
+    {
+        GameObject invisBox = _invisBoxPool.GetObject();
+        invisBox.transform.position = position;
+        return invisBox;
+    }
+
+    public void ReturnInvisBox(GameObject invisBox)
+    {
+        _invisBoxPool.ReturnObject(invisBox);
+    }
     
+    public ArcherTower GetArcher(Vector3 position)
+    {
+        ArcherTower archer = _archerPool.GetObject();
+        archer.transform.position = position;
+        return archer;
+    }
+
+    public void ReturnArcher(ArcherTower archer)
+    {
+        _archerPool.ReturnObject(archer);
+    }
     
-    
-    
+    public Arrow GetArrow(Vector3 position, Quaternion rotation)
+    {
+        Arrow arrow = _arrowPool.GetObject();
+        arrow.transform.position = position;
+        arrow.transform.rotation = rotation;
+        return arrow;
+    }
+
+    public void ReturnArrow(Arrow arrow)
+    {
+        _arrowPool.ReturnObject(arrow);
+        arrow.transform.parent = transform;
+    }
+}
+
+public class ObjectPooler<T> where T : class
+{
+    private readonly GameObject _prefab;
+    private readonly Queue<GameObject> _pool = new Queue<GameObject>();
+
+    public ObjectPooler(GameObject prefab)
+    {
+        this._prefab = prefab;
+    }
+
+    public T GetObject()
+    {
+        GameObject obj;
+        if (_pool.Count > 0)
+        {
+            obj = _pool.Dequeue();
+            obj.SetActive(true);
+        }
+        else
+        {
+            obj = GameObject.Instantiate(_prefab, Vector3.zero, Quaternion.identity);
+        }
+
+        // If T is a GameObject, return the GameObject itself, else return the component
+        if (typeof(T) == typeof(GameObject))
+        {
+            return obj as T;
+        }
+
+        return obj.GetComponent<T>();
+    }
+
+    public void ReturnObject(T obj)
+    {
+        GameObject go = (obj as GameObject) ?? (obj as Component)?.gameObject;
+        if (go != null)
+        {
+            go.SetActive(false);
+            _pool.Enqueue(go);
+        }
+    }
 }

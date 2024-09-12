@@ -116,7 +116,7 @@ public class GuardSpawner : MonoBehaviour
     private void OnGuardReturnedToBase(TowerGuard guard)
     {
         guard.OnReachedDestination -= OnGuardReturnedToBase;
-        ObjectPool.Instance.ReturnTowerGuard(guard.gameObject);
+        ObjectPool.Instance.ReturnTowerGuard(guard);
     }
 
     private IEnumerator FinishBuildingCoroutine(KeyValuePair<List<TowerGuard>, List<Tile>>? guardsBatch = null){
@@ -130,7 +130,7 @@ public class GuardSpawner : MonoBehaviour
     {
         if (other.CompareTag("Enemy"))
         {
-            ObjectPool.Instance.ReturnEnemy(other.gameObject);
+            other.GetComponent<EnemyHealth>().HandleDestroy();
         }
     }
 }
