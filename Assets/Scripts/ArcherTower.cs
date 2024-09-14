@@ -4,12 +4,12 @@ using UnityEngine.AI;
 
 public class ArcherTower : MonoBehaviour
 {
+    [SerializeField] private SphereCollider towerCollider;
+    [SerializeField] private LayerMask enemyLayerMask;
     public float fireRate = 1f; // Fire rate in seconds
     public GameObject arrowPrefab; // Prefab of the arrow
     public Transform arrowSpawnPoint; // Spawn point of the arrow
     public float arrowSpeed = 20f; // Speed of the arrow
-    [SerializeField] private SphereCollider towerCollider;
-    [SerializeField] private LayerMask enemyLayerMask;
 
     private float _nextFireTime;
     private List<EnemyHealth> _enemyHealthsInRange;
@@ -17,6 +17,7 @@ public class ArcherTower : MonoBehaviour
 
     void OnEnable()
     {
+        // Detect enemies in detection range on enable because we are detecting enemies with ontrigger
         RebuildEnemiesInRange();
     }
     

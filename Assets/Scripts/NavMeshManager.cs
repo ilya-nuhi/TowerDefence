@@ -5,18 +5,7 @@ using UnityEngine;
 public class NavMeshManager : MonoBehaviour
 {
     [SerializeField] private NavMeshSurface navMeshSurface;
-    private void OnEnable()
-    {
-        EventManager.Instance.OnUpdateNavMesh += UpdateNavMesh;
-    }
-
-    private void OnDisable()
-    {
-        if (EventManager.Instance != null)
-        {
-            EventManager.Instance.OnUpdateNavMesh -= UpdateNavMesh;
-        }
-    }
+    
     private void Start()
     {
         UpdateNavMesh();

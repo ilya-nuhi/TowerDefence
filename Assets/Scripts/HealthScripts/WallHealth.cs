@@ -12,7 +12,6 @@ public class WallHealth : Health
     protected override void HandleZeroHealth()
     {
         _wall.DestroyWall();
-        EventManager.Instance.UpdateNavMesh();
     }
     
     public override void TakeDamage(float amount)

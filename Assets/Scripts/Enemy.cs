@@ -11,7 +11,7 @@ public class Enemy : MonoBehaviour
     [SerializeField] private LayerMask wallLayer; // Layer mask to filter walls
     [SerializeField] public NavMeshAgent navAgent;  // Reference to the enemy's NavMeshAgent
     private Tile[,] _tiles;
-    [SerializeField] private float damagePerSecond = 10f; // Damage dealt per second to walls
+    [SerializeField] private float damagePerSecond = 10f; // Damage dealt per second
     private Coroutine _checkingCoroutine; // Store reference to the coroutine
     private bool _startCalled = false;
     private Vector3 _currentDestination;
@@ -192,24 +192,25 @@ public class Enemy : MonoBehaviour
         while (true)
         {
             UpdateDestination();
-            DetectAndDamageWalls();
+            DetectAndDamage();
             yield return new WaitForSeconds(1);
         }
     }
     
-    void DetectAndDamageWalls()
+    void DetectAndDamage()
     {
-        Collider[] results = new Collider[8];
-        var size = Physics.OverlapSphereNonAlloc(transform.position, 0.75f, results, wallLayer);
+        Collider[] results = new Collider[15];
+        LayerMask layerMask = LayerMask.GetMask("Wall","Guard");
+        var size = Physics.OverlapSphereNonAlloc(transform.position, 0.75f, results, layerMask, QueryTriggerInteraction.Ignore);
 
         for (int i = 0; i < size; i++)
         {
             Collider currentCollider = results[i];
             
-            Health wallHealth = currentCollider.GetComponent<Health>();
-            if (wallHealth != null && wallHealth.isActiveAndEnabled)
+            Health health = currentCollider.GetComponent<Health>();
+            if (health != null && health.isActiveAndEnabled)
             {
-                wallHealth.TakeDamage(damagePerSecond);
+                health.TakeDamage(damagePerSecond);
             }
             
         }

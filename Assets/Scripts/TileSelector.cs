@@ -99,7 +99,6 @@ public class TileSelector : MonoBehaviour
                 BuildNewArcherTowers();
                 _wallTiles.Clear();
                 _wallTiles.AddRange(_newOuterWalls);
-                EventManager.Instance.UpdateNavMesh();
             }
         }
         
@@ -478,7 +477,6 @@ public class TileSelector : MonoBehaviour
             }
         }
         _selectedTiles.Clear();
-        EventManager.Instance.UpdateNavMesh();
         _canExpand = true;
     }
 
