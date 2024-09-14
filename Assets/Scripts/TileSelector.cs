@@ -456,7 +456,7 @@ public class TileSelector : MonoBehaviour
             }
 
             // After setting walls spawn tower guards to position on the archertiles
-            EventManager.Instance.SpawnTowerGuards(archerTiles, _selectedTiles);
+            EventManager.Instance.ConstructWall(archerTiles, _selectedTiles);
 
         }
         
@@ -476,7 +476,6 @@ public class TileSelector : MonoBehaviour
                 
             }
         }
-        _selectedTiles.Clear();
         _canExpand = true;
     }
 

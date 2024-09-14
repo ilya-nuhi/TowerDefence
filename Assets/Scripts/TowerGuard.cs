@@ -21,14 +21,12 @@ public class TowerGuard : MonoBehaviour
 
     private void OnEnable()
     {
-        Debug.Log("TowerGuard enabled: Starting enemy detection and movement logic.");
         RebuildEnemiesInRange();
         _detectAndDamageCoroutine = StartCoroutine(CheckingCoroutine());
     }
 
     private void OnDisable()
     {
-        Debug.Log("TowerGuard disabled: Stopping enemy detection and movement logic.");
         if (_detectAndDamageCoroutine != null)
         {
             StopCoroutine(_detectAndDamageCoroutine);
@@ -39,7 +37,6 @@ public class TowerGuard : MonoBehaviour
 
     private void RebuildEnemiesInRange()
     {
-        Debug.Log("Rebuilding enemies in range...");
         targetEnemy = null;
         _enemyHealthsInRange = new HashSet<EnemyHealth>();
         Collider[] results = new Collider[100];
@@ -52,7 +49,6 @@ public class TowerGuard : MonoBehaviour
             {
                 _enemyHealthsInRange.Add(enemyHealth);
                 enemyHealth.OnDeath += RemoveEnemyFromRange;
-                Debug.Log($"Detected enemy in range: {enemyHealth.gameObject.name}");
             }
         }
 
@@ -63,12 +59,10 @@ public class TowerGuard : MonoBehaviour
     {
         if (_enemyHealthsInRange.Remove(enemyHealth))
         {
-            Debug.Log($"Enemy removed from range: {enemyHealth.gameObject.name}");
             enemyHealth.OnDeath -= RemoveEnemyFromRange;
 
             if (targetEnemy == enemyHealth.GetComponent<Enemy>())
             {
-                Debug.Log("Target enemy died, finding closest enemy...");
                 SetClosestEnemyAsTarget();
             }
         }
@@ -108,18 +102,15 @@ public class TowerGuard : MonoBehaviour
             if (closestEnemy != null)
             {
                 targetEnemy = closestEnemy.GetComponent<Enemy>();
-                Debug.Log($"Closest enemy set as target: {targetEnemy.gameObject.name}");
             }
             else
             {
-                Debug.Log("No valid enemies found, setting target to null.");
                 targetEnemy = null;
             }
         }
 
         if (_enemyHealthsInRange.Count == 0)
         {
-            Debug.Log("No enemies in range.");
             targetEnemy = null;
         }
 
@@ -130,7 +121,6 @@ public class TowerGuard : MonoBehaviour
     {
         if (targetEnemy != null)
         {
-            Debug.Log($"Guard moving to enemy: {targetEnemy.gameObject.name}");
             agent.SetDestination(targetEnemy.transform.position);
             if (_destinationReachedRoutine != null)
             {
@@ -143,12 +133,7 @@ public class TowerGuard : MonoBehaviour
         {
             if (_wallTransform != null)
             {
-                Debug.Log("No enemies detected, moving to wall.");
                 SetDutyDestination(_wallTransform);
-            }
-            else
-            {
-                Debug.Log("No target set for the guard.");
             }
         }
     }
@@ -163,18 +148,16 @@ public class TowerGuard : MonoBehaviour
     {
         if (other.CompareTag("Enemy"))
         {
-            Debug.Log($"Enemy entered guard's detection range: {other.gameObject.name}");
             EnemyHealth newEnemyHealth = other.GetComponent<EnemyHealth>();
-            if (!_enemyHealthsInRange.Contains(newEnemyHealth))
+            if (_enemyHealthsInRange.Add(newEnemyHealth))
             {
-                _enemyHealthsInRange.Add(newEnemyHealth);
                 newEnemyHealth.OnDeath += RemoveEnemyFromRange;
             }
 
             if (targetEnemy == null)
             {
                 targetEnemy = newEnemyHealth.GetComponent<Enemy>();
-                Debug.Log($"New enemy target: {targetEnemy.gameObject.name}");
+                if (!targetEnemy.isActiveAndEnabled || !targetEnemy.navAgent.isActiveAndEnabled)return;
                 agent.SetDestination(targetEnemy.transform.position);
                 targetEnemy.navAgent.isStopped = true;
                 if (_destinationReachedRoutine != null)
@@ -190,13 +173,11 @@ public class TowerGuard : MonoBehaviour
     {
         if (other.CompareTag("Enemy"))
         {
-            Debug.Log($"Enemy exited guard's detection range: {other.gameObject.name}");
             EnemyHealth quittingEnemyHealth = other.GetComponent<EnemyHealth>();
             _enemyHealthsInRange.Remove(quittingEnemyHealth);
             quittingEnemyHealth.OnDeath -= RemoveEnemyFromRange;
             if (targetEnemy == quittingEnemyHealth.GetComponent<Enemy>())
             {
-                Debug.Log("Target enemy exited range, finding new target...");
                 SetClosestEnemyAsTarget();
             }
         }
@@ -204,7 +185,6 @@ public class TowerGuard : MonoBehaviour
 
     public void SetDutyDestination(Transform destination)
     {
-        Debug.Log($"Setting destination to wall at position: {destination.position}");
         _wallTransform = destination;
         if (targetEnemy!=null) return; // if there is an enemy in range, don't leave the enemy.
         Vector3 destPos = new Vector3(destination.position.x, transform.position.y, destination.position.z);
@@ -224,7 +204,6 @@ public class TowerGuard : MonoBehaviour
         {
             if (!agent.pathPending && agent.remainingDistance <= 0.5f)
             {
-                Debug.Log("Guard reached its destination.");
                 OnReachedDestination?.Invoke(this);
                 yield break;
             }
@@ -256,7 +235,6 @@ public class TowerGuard : MonoBehaviour
             Health health = currentCollider.GetComponent<Health>();
             if (health != null && health.isActiveAndEnabled)
             {
-                Debug.Log($"Damaging enemy: {currentCollider.gameObject.name}");
                 health.TakeDamage(damagePerSecond);
             }
         }

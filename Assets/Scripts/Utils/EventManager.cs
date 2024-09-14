@@ -4,12 +4,12 @@ using UnityEngine;
 
 public class EventManager : Singleton<EventManager>
 {
-    public event Action<List<Tile>, List<Tile>> OnSpawnTowerGuards;
+    public event Action<List<Tile>, List<Tile>> OnConstructWall;
     public event Action<List<Tile>> OnFinishBuildingWalls;
     
-    public void SpawnTowerGuards(List<Tile> destinationTiles, List<Tile> wallTiles)
+    public void ConstructWall(List<Tile> destinationTiles, List<Tile> wallTiles)
     {
-        OnSpawnTowerGuards?.Invoke(destinationTiles, wallTiles);
+        OnConstructWall?.Invoke(destinationTiles, wallTiles);
     }
 
     public void FinishBuildingWalls(List<Tile> archerTiles){
