@@ -9,18 +9,18 @@ public class Health : MonoBehaviour
     [SerializeField] protected float maxHealth = 100f;
     [SerializeField] protected Slider healthSlider;  // Reference to the health slider UI
     [SerializeField] protected CanvasGroup canvasGroup;
-    protected float _currentHealth;
+    protected float currentHealth;
     private Coroutine _fadeOutBarCoroutine;
 
 
     private void OnEnable()
     {
-        _currentHealth = maxHealth;
+        currentHealth = maxHealth;
 
         if (healthSlider != null)
         {
             healthSlider.maxValue = maxHealth;
-            healthSlider.value = _currentHealth;
+            healthSlider.value = currentHealth;
         }
         if (canvasGroup != null)
         {
@@ -38,15 +38,15 @@ public class Health : MonoBehaviour
 
     public virtual void TakeDamage(float amount)
     {
-        _currentHealth -= amount;
-        if (_currentHealth < 0) _currentHealth = 0;
+        currentHealth -= amount;
+        if (currentHealth < 0) currentHealth = 0;
 
         if (healthSlider != null)
         {
-            healthSlider.value = _currentHealth;
+            healthSlider.value = currentHealth;
         }
 
-        if (_currentHealth <= 0)
+        if (currentHealth <= 0)
         {
             HandleZeroHealth();
         }
@@ -89,6 +89,17 @@ public class Health : MonoBehaviour
         }
 
         canvasGroup.alpha = 0f;
+    }
+
+    public void SetMaxHealth(float health)
+    {
+        maxHealth = health;
+        currentHealth += health-maxHealth;
+        if (healthSlider != null)
+        {
+            healthSlider.maxValue = maxHealth;
+            healthSlider.value = currentHealth;
+        }
     }
     
 }

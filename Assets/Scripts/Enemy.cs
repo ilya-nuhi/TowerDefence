@@ -25,6 +25,24 @@ public class Enemy : MonoBehaviour
             // Start the CheckingCoroutine only after Start has been called
             _checkingCoroutine = StartCoroutine(CheckingCoroutine());
         }
+
+        SetStats();
+    }
+
+    private void SetStats()
+    {
+        damagePerSecond = EnemyStatsManager.Damage;
+        GetComponent<Health>().SetMaxHealth(EnemyStatsManager.Health);
+        navAgent.speed = EnemyStatsManager.Speed;
+    }
+    
+    private void Update()
+    {
+        // Detect spacebar press
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            SetStats();
+        }
     }
 
     // Called when the GameObject is disabled
@@ -44,6 +62,7 @@ public class Enemy : MonoBehaviour
         StartCoroutine(CheckingCoroutine());
         _startCalled = true;
     }
+    
 
     private void UpdateDestination()
     {

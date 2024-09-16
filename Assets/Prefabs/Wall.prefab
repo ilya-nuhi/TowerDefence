@@ -138,6 +138,7 @@ MonoBehaviour:
   maxHealth: 100
   healthSlider: {fileID: 1948164700010713700}
   canvasGroup: {fileID: 2353293772731189602}
+  regenRate: 5
 --- !u!208 &-5908218279906863910
 NavMeshObstacle:
   m_ObjectHideFlags: 0
